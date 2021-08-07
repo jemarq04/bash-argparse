@@ -87,6 +87,26 @@ function check_lists {
         LONG_FLAG_LIST="$2 $LONG_FLAG_LIST"
     fi  
 }
+function add_help {
+	[[ $# -ne 3 ]] && die "script error: add_help() requires three arguments"
+	local helpstr=$(printf "\n  $1")
+	local first=`cut -d / -f 1 <<< $1`
+	local second=`cut -d / -f 2 <<< $1`
+	local index=2
+
+	[[ $first = $second && ! $first =~ ^-- ]] && local index=1
+	if [[ $2 -ne 0 ]]; then
+		
+		for i in $(eval echo "{1..$2}"); do
+			local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
+			[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
+		done
+	fi
+
+	local helpstr=$(printf "$helpstr:\n\t$3")
+
+	HELP=$(printf "$HELP$helpstr")
+}
 ''' % (name, num, desc, usage)
 	if not noflags:
 		result+='''
@@ -105,8 +125,8 @@ def strargs(args):
 	for arg in args.split(','):
 		result+='''        # STR FLAG ====================================================================================
         arg="%s"
-		nargs=1
-		$BEGIN || HELP=$(printf "$HELP\n  $arg:\n\t<insert $arg help here>") #editme
+		nargs=1 #editme
+		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=()
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
@@ -117,7 +137,7 @@ def strargs(args):
 					if [[ ${argval[0]} = $1 ]]; then
 						[ -z $2 ] && die "argument $arg: expected one argument"
 						SHIFT_NUM=2
-						${argval[0]}=$2
+						argval[0]=$2
 					fi
 				else
 					die "script error: not implimented yet"
@@ -153,8 +173,8 @@ def intargs(args):
 	for arg in args.split(','):
 		result+='''        # INT FLAG ====================================================================================
         arg="%s"
-		nargs=1
-        $BEGIN || HELP=$(printf "$HELP\\n  $arg:\\n\\t<insert $arg help here>") #editme
+		nargs=1 #editme
+		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
         argval=""
         first=`cut -d / -f 1 <<< $arg`
         second=`cut -d / -f 2 <<< $arg`
@@ -201,8 +221,8 @@ def floatargs(args):
 	for arg in args.split(','):
 		result+='''        # FLOAT FLAG ==================================================================================
         arg="%s"
-		nargs=1
-        $BEGIN || HELP=$(printf "$HELP\\n  $arg:\\n\\t<insert $arg help here>") #editme
+		nargs=1 #editme
+		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
         argval=""
         first=`cut -d / -f 1 <<< $arg`
         second=`cut -d / -f 2 <<< $arg`
@@ -249,7 +269,7 @@ def boolargs(args):
 	for arg in args.split(','):
 		result+='''        # BOOL FLAG ===================================================================================
         arg="%s"
-        $BEGIN || HELP=$(printf "$HELP\\n  $arg:\\n\\t<insert $arg help here>") #editme
+		$BEGIN || add_help $arg 0 "<insert $arg help here>" #editme
         argval=false
         first=`cut -d / -f 1 <<< $arg`
         second=`cut -d / -f 2 <<< $arg`
@@ -270,8 +290,7 @@ def boolargs(args):
 def helparg():
 	return '''        # HELP FLAG ===================================================================================
         arg="-h/--help"
-        $BEGIN || HELP=$(printf "$HELP\\n  $arg:\\n\\tprint this help message and exit")
-        argval=false
+		$BEGIN || add_help $arg 0 "print this help message and exit"
         first=`cut -d / -f 1 <<< $arg`
         second=`cut -d / -f 2 <<< $arg`
         if $BEGIN; then

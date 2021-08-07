@@ -10,8 +10,7 @@ FOUND_HELP=false
 PRINT_HELP=false
 BEGIN=false
 
-#TODO: Improve nargs for str: check for multi-word entries
-#TODO: Add values into help screen (like -g/--gen NUM) or something
+#TODO: Add 'metavar' support for add_help()
 
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
@@ -35,6 +34,26 @@ function check_lists {
 		LONG_FLAG_LIST="$2 $LONG_FLAG_LIST"
 	fi
 }
+function add_help {
+	[[ $# -ne 3 ]] && die "script error: add_help() requires three arguments"
+	local helpstr=$(printf "\n  $1")
+	local first=`cut -d / -f 1 <<< $1`
+	local second=`cut -d / -f 2 <<< $1`
+	local index=2
+
+	[[ $first = $second && ! $first =~ ^-- ]] && local index=1
+	if [[ $2 -ne 0 ]]; then
+		
+		for i in $(eval echo "{1..$2}"); do
+			local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
+			[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
+		done
+	fi
+
+	local helpstr=$(printf "$helpstr:\n\t$3")
+
+	HELP=$(printf "$HELP$helpstr")
+}
 
 HELP=$(printf "\noptional arguments:")
 while (( "$#" )); do
@@ -42,8 +61,7 @@ while (( "$#" )); do
 		
 		# HELP FLAG ===================================================================================
 		arg="-h/--help"
-		$BEGIN || HELP=$(printf "$HELP\n  $arg:\n\tprint this help message and exit")
-		argval=false
+		$BEGIN || add_help $arg 0 "print this help message and exit"
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
 		if $BEGIN; then
@@ -60,7 +78,7 @@ while (( "$#" )); do
 		# STR FLAG ====================================================================================
 		arg="-s/--str"
 		nargs=1
-		$BEGIN || HELP=$(printf "$HELP\n  $arg:\n\t<insert $arg help here>") #editme
+		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=()
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
@@ -71,7 +89,7 @@ while (( "$#" )); do
 					if [[ ${argval[0]} = $1 ]]; then
 						[ -z $2 ] && die "argument $arg: expected one argument"
 						SHIFT_NUM=2
-						${argval[0]}=$2
+						argval[0]=$2
 					fi
 				else
 					die "script error: not implimented yet"
@@ -99,7 +117,7 @@ while (( "$#" )); do
 		# INT FLAG ====================================================================================
 		arg="-n/--num"
 		nargs=1
-		$BEGIN || HELP=$(printf "$HELP\n  $arg:\n\t<insert $arg help here>") #editme
+		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=""
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
@@ -139,7 +157,7 @@ while (( "$#" )); do
 		# FLOAT FLAG ==================================================================================
 		arg="-f/--float"
 		nargs=1
-		$BEGIN || HELP=$(printf "$HELP\n  $arg:\n\t<insert $arg help here>") #editme
+		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=""
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
@@ -178,7 +196,7 @@ while (( "$#" )); do
 		
 		# BOOL FLAG ===================================================================================
 		arg="-a"
-		$BEGIN || HELP=$(printf "$HELP\n  $arg:\n\t<insert $arg help here>") #editme
+		$BEGIN || add_help $arg 0 "<insert $arg help here>" #editme
 		argval=false
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
