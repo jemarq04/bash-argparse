@@ -11,6 +11,7 @@ PRINT_HELP=false
 BEGIN=false
 
 #TODO: Add 'metavar' support for add_help()
+#TODO: Automate usage
 
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
@@ -23,19 +24,24 @@ function usage { echo "usage: `basename $0` [optional-args] required-args"; }
 # ===============================================================================================
 
 function die { echo $(usage); echo error: $@ >&2; exit 1; }
+function error {
+	[[ $# -eq 0 ]] && die
+	[[ $# -eq 1 ]] && die "$1"
+	die "argument $1: $2"
+}
 function check_lists { 
-	[[ $# -ne 2 ]] && die "script error: check_lists() requires two arguments"
+	[[ $# -ne 2 ]] && error "check_lists() requires two arguments"
 	if [[ ! $1 =~ ^-- ]]; then
-		[[ $FLAG_LIST = *"${1:1}"* ]] && die "script error: duplicate flag $1"
+		[[ $FLAG_LIST = *"${1:1}"* ]] && error "duplicate flag $1"
 		FLAG_LIST="${1:1} $FLAG_LIST"
 	fi
 	if [[ ${2:0:2} = "--" ]]; then
-		[[ $LONG_FLAG_LIST = *"$2"* ]] && die "script error: duplicate long flag $2"
+		[[ $LONG_FLAG_LIST = *"$2"* ]] && error "duplicate long flag $2"
 		LONG_FLAG_LIST="$2 $LONG_FLAG_LIST"
 	fi
 }
 function add_help {
-	[[ $# -ne 3 ]] && die "script error: add_help() requires three arguments"
+	[[ $# -ne 3 ]] && error "add_help() requires three arguments"
 	local helpstr=$(printf "\n  $1")
 	local first=`cut -d / -f 1 <<< $1`
 	local second=`cut -d / -f 2 <<< $1`
@@ -87,22 +93,21 @@ while (( "$#" )); do
 				if [[ $nargs -eq 1 ]]; then
 					argval+=("`cut -d = -f 2 <<< $1`")
 					if [[ ${argval[0]} = $1 ]]; then
-						[ -z $2 ] && die "argument $arg: expected one argument"
+						[ -z $2 ] && error $arg "expected one argument"
 						SHIFT_NUM=2
 						argval[0]=$2
 					fi
 				else
-					die "script error: not implimented yet"
 					(( end = $nargs + 1 ))
 					for i in $(eval echo "{2..$end}"); do
-						[[ -z ${@:$i:1} ]] && die "argument $arg: expected $nargs arguments"
+						[[ -z ${@:$i:1} ]] && error $arg "expected $nargs arguments"
 						argval+=("${@:$i:1}")
 					done
 					(( SHIFT_NUM = $nargs + 1 ))
 				fi
 				FOUND_FLAG=true
 			elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
-				[[ $nargs -ne 1 ]] && die "argument $arg: expected $nargs arguments"
+				[[ $nargs -ne 1 ]] && error $arg "expected $nargs arguments"
 				argval+=("`cut -d ${first:1} -f 2 <<< $1`")
 				FOUND_FLAG=true
 				set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
@@ -126,25 +131,25 @@ while (( "$#" )); do
 				if [[ $nargs -eq 1 ]]; then
 					argval=`cut -d = -f 2 <<< $1`
 					if [[ $argval = $1 ]]; then
-						[ -z $2 ] && die "argument $arg: expected one argument"
+						[ -z $2 ] && error $arg "expected one argument"
 						SHIFT_NUM=2
 						argval=$2
 					fi
-					[[ ! $argval =~ ^[0-9]+$ ]] && die "argument $arg: invalid integer: '$argval'"
+					[[ ! $argval =~ ^[0-9]+$ ]] && error $arg "invalid integer: '$argval'"
 				else
 					(( end = $nargs + 1 ))
 					for i in $(eval echo "{2..$end}"); do
-						[[ -z ${@:$i:1} ]] && die "argument $arg: expected $nargs arguments"
-						[[ ! ${@:$i:1} =~ ^[0-9]+$ ]] && die "argument $arg: invalid integer: '${@:$i:1}'"
+						[[ -z ${@:$i:1} ]] && error $arg "expected $nargs arguments"
+						[[ ! ${@:$i:1} =~ ^[0-9]+$ ]] && error $arg "invalid integer: '${@:$i:1}'"
 						[[ -z $argval ]] && argval="${@:$i:1}" || argval="$argval ${@:$i:1}"
 					done
 					(( SHIFT_NUM = $nargs + 1 ))
 				fi
 				FOUND_FLAG=true
 			elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
-				[[ $nargs -ne 1 ]] && die "argument $arg: expected $nargs arguments"
+				[[ $nargs -ne 1 ]] && error $arg "expected $nargs arguments"
 				argval=`cut -d ${first:1} -f 2 <<< $1`
-				[[ ! $argval =~ ^[0-9]+$ ]] && die "argument $arg: invalid integer: '$argval'"
+				[[ ! $argval =~ ^[0-9]+$ ]] && error $arg "invalid integer: '$argval'"
 				FOUND_FLAG=true
 				set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 			fi
@@ -166,25 +171,25 @@ while (( "$#" )); do
 				if [[ $nargs -eq 1 ]]; then
 					argval=`cut -d = -f 2 <<< $1`
 					if [[ $argval = $1 ]]; then
-						[ -z $2 ] && die "argument $arg: expected one argument"
+						[ -z $2 ] && error $arg "expected one argument"
 						SHIFT_NUM=2
 						argval=$2
 					fi
-					[[ ! $argval =~ ^[0-9]+([.][0-9]+)?$ ]] && die "argument $arg: invalid float: '$argval'"
+					[[ ! $argval =~ ^[0-9]+([.][0-9]+)?$ ]] && error $arg "invalid float: '$argval'"
 				else
 					(( end = $nargs + 1 ))
 					for i in $(eval echo "{2..$end}"); do
-						[[ -z ${@:$i:1} ]] && die "argument $arg: expected $nargs arguments"
-						[[ ! ${@:$i:1} =~ ^[0-9]+([.][0-9]+)?$ ]] && die "argument $arg: invalid float: '${@:$i:1}'"
+						[[ -z ${@:$i:1} ]] && error $arg "expected $nargs arguments"
+						[[ ! ${@:$i:1} =~ ^[0-9]+([.][0-9]+)?$ ]] && error $arg "invalid float: '${@:$i:1}'"
 						[[ -z $argval ]] && argval="${@:$i:1}" || argval="$argval ${@:$i:1}"
 					done
 					(( SHIFT_NUM = $nargs + 1 ))
 				fi
 				FOUND_FLAG=true
 			elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
-				[[ $nargs -ne 1 ]] && die "argument $arg: expected $nargs arguments"
+				[[ $nargs -ne 1 ]] && error $arg "expected $nargs arguments"
 				argval=`cut -d ${first:1} -f 2 <<< $1`
-				[[ ! $argval =~ ^[0-9]+([.][0-9]+)?$ ]] && die "argument $arg: invalid float: '$argval'"
+				[[ ! $argval =~ ^[0-9]+([.][0-9]+)?$ ]] && error $arg "invalid float: '$argval'"
 				FOUND_FLAG=true
 				set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 			fi
@@ -212,13 +217,13 @@ while (( "$#" )); do
 		# END =========================================================================================
 		
 		if $BEGIN; then
-			[[ $FOUND_FLAG = false ]] && die "unrecognized argument: $1"
+			[[ $FOUND_FLAG = false ]] && error "unrecognized argument: $1"
 			if [[ ${1:0:1} = "-" && ! ${1:0:2} = "--" ]]; then
 				while read -n 1 char; do
 					[ -z $char ] && continue
 					found_char=false
 					for w in $FLAG_LIST; do [ $w = $char ] && found_char=true; done
-					[[ $found_char = false ]] && die "unrecognized arguments: $1"
+					[[ $found_char = false ]] && error "unrecognized arguments: $1"
 				done <<< ${1:1}
 			fi
 		fi
@@ -240,8 +245,8 @@ if $PRINT_HELP; then
 	exit 0
 fi
 for w in $PARAMS; do set -- "$@" "$w"; done
-[[ $# -lt $NUM_POS_ARGS ]] && die "too few arguments"
-[[ $# -gt $NUM_POS_ARGS ]] && die "too many arguments"
+[[ $# -lt $NUM_POS_ARGS ]] && error "too few arguments"
+[[ $# -gt $NUM_POS_ARGS ]] && error "too many arguments"
 
 # MAIN SCRIPT ===================================================================================
 
