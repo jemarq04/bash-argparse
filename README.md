@@ -1,4 +1,4 @@
-# Bash Argument Parser v1.4.0
+# Bash Argument Parser v1.4.1
 
 Basic template and setup.py file to create bash scripts with argument parsing.
 

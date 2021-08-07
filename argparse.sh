@@ -242,8 +242,6 @@ fi
 for w in $PARAMS; do set -- "$@" "$w"; done
 [[ $# -lt $NUM_POS_ARGS ]] && die "too few arguments"
 [[ $# -gt $NUM_POS_ARGS ]] && die "too many arguments"
-unset -f usage
-unset -f check_lists
 
 # MAIN SCRIPT ===================================================================================
 
@@ -253,5 +251,3 @@ echo Long Flag List: $LONG_FLAG_LIST
 echo We are left with: $@
 
 # ===============================================================================================
-
-unset -f die
