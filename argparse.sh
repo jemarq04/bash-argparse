@@ -10,8 +10,8 @@ FOUND_HELP=false
 PRINT_HELP=false
 BEGIN=false
 
-#TODO: Add 'metavar' support for add_help()
-#TODO: Automate usage
+#TODO: Automate usage string
+#TODO: Begin adding instructions on user-callable functions.
 
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
@@ -41,7 +41,7 @@ function check_lists {
 	fi
 }
 function add_help {
-	[[ $# -ne 3 ]] && error "add_help() requires three arguments"
+	[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires three/four arguments"
 	local helpstr=$(printf "\n  $1")
 	local first=`cut -d / -f 1 <<< $1`
 	local second=`cut -d / -f 2 <<< $1`
@@ -51,8 +51,12 @@ function add_help {
 	if [[ $2 -ne 0 ]]; then
 		
 		for i in $(eval echo "{1..$2}"); do
-			local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
-			[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
+			if [[ -z $4 ]]; then
+				local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
+				[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
+			else
+				local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
+			fi
 		done
 	fi
 
@@ -60,6 +64,10 @@ function add_help {
 
 	HELP=$(printf "$HELP$helpstr")
 }
+
+add_help "-s/--str" 2 "help stuff"
+echo "$HELP"
+exit 0
 
 HELP=$(printf "\noptional arguments:")
 while (( "$#" )); do

@@ -7,7 +7,7 @@ def main():
 			NOTE: The only thing that it doesn't account for is HELP\
 			information for each argument and $nargs, which must be\
 			edited manually."
-	NAME = "#Bash Argument Parser v1.4.2\n"
+	NAME = "#Bash Argument Parser v1.4.3\n"
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("--desc", type=str, default="", help="program description")
@@ -93,7 +93,7 @@ function check_lists {
 	fi
 }
 function add_help {
-	[[ $# -ne 3 ]] && error "add_help() requires three arguments"
+	[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires three/four arguments"
 	local helpstr=$(printf "\n  $1")
 	local first=`cut -d / -f 1 <<< $1`
 	local second=`cut -d / -f 2 <<< $1`
@@ -103,8 +103,12 @@ function add_help {
 	if [[ $2 -ne 0 ]]; then
 		
 		for i in $(eval echo "{1..$2}"); do
-			local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
-			[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
+			if [[ -z $4 ]]; then
+				local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
+				[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
+			else
+				local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
+			fi
 		done
 	fi
 
