@@ -7,9 +7,10 @@ def main():
 			NOTE: The only thing that it doesn't account for is HELP\
 			information for each argument and $nargs, which must be\
 			edited manually."
-	NAME = "#Bash Argument Parser v1.5.0\n"
+	NAME = "#Bash Argument Parser (BAP) v1.5.0\n"
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+	parser.add_argument("--version", action="version", version="Bash Argument Parser (BAP) v1.5.0", help="print the version and exit")
 	parser.add_argument("--desc", type=str, default="", help="program description")
 	parser.add_argument("--add-help", action="store_true", help="if given, will add help to the program")
 	parser.add_argument("--int-args", type=str, default="", help="comma-separated list of single integer arguments (examples: -n/--num or -n or --num)")
