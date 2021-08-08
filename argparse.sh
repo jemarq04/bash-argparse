@@ -14,8 +14,6 @@ FOUND_HELP=false
 PRINT_HELP=false
 BEGIN=false
 
-#TODO: Begin adding instructions on user-callable functions.
-
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
 DESC=$(printf "This is a demonstration of the argument parser's capabilities.")
