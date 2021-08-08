@@ -18,7 +18,7 @@ BEGIN=false
 
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
-DESC=$(printf "")
+DESC=$(printf "This is a demonstration of the argument parser's capabilities.")
 # ===============================================================================================
 
 # SCRIPT VARIABLES ==============================================================================
@@ -116,8 +116,8 @@ while (( "$#" )); do
 		# END =========================================================================================
 		
 		# STR FLAG ====================================================================================
-		arg="-s/--str"
-		nargs=1
+		arg="-s/--str" #editme
+		nargs=1 #editme
 		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=()
 		first=`cut -d / -f 1 <<< $arg`
@@ -154,8 +154,8 @@ while (( "$#" )); do
 		# END =========================================================================================
 		
 		# INT FLAG ====================================================================================
-		arg="-n/--num"
-		nargs=2
+		arg="-n/--num" #editme
+		nargs=2 #editme
 		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=""
 		first=`cut -d / -f 1 <<< $arg`
@@ -194,8 +194,8 @@ while (( "$#" )); do
 		# END =========================================================================================
 
 		# FLOAT FLAG ==================================================================================
-		arg="-f/--float"
-		nargs=1
+		arg="-f/--float" #editme
+		nargs=1 #editme
 		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=""
 		first=`cut -d / -f 1 <<< $arg`
@@ -234,7 +234,7 @@ while (( "$#" )); do
 		# END =========================================================================================
 		
 		# BOOL FLAG ===================================================================================
-		arg="-a"
+		arg="-a" #editme
 		$BEGIN || add_help $arg 0 "<insert $arg help here>" #editme
 		argval=false
 		first=`cut -d / -f 1 <<< $arg`

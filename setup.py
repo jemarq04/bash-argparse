@@ -11,12 +11,12 @@ def main():
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("--desc", type=str, default="", help="program description")
+	parser.add_argument("--add-help", action="store_true", help="if given, will add help to the program")
 	parser.add_argument("--int-args", type=str, default="", help="comma-separated list of single integer arguments (examples: -n/--num or -n or --num)")
 	parser.add_argument("--float-args", type=str, default="", help="comma-separated list of single float arguments (examples: -f/--float or -f or --float)")
 	parser.add_argument("--str-args", type=str, default="", help="comma-separated list of single string arguments (examples: -s/--str or -s or --str)")
 	parser.add_argument("--bool-args", type=str, default="", help="comma-separated list of boolean flags (examples: -a/--a-flag or -a or --a-flag")
 	parser.add_argument("--num", type=int, default=0, help="number of required positional arguments")
-	parser.add_argument("--add-help", action="store_true", help="if given, will add help to the program")
 	parser.add_argument("progname", type=str, help="name of the program")
 	args = parser.parse_args()
 	
