@@ -21,8 +21,6 @@ def main():
 	parser.add_argument("progname", type=str, help="name of the program")
 	args = parser.parse_args()
 	
-	#bring in string args, then int args, then float args, bool args
-	
 	if args.int_args == "" and args.float_args == "" and args.str_args == "" and args.bool_args == "" and not args.add_help and args.num == 0:
 		parser.error("at least one argument is required for this to be necessary")
 	
