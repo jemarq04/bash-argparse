@@ -7,11 +7,10 @@ def main():
 			NOTE: The only thing that it doesn't account for is HELP\
 			information for each argument and $nargs, which must be\
 			edited manually."
-	NAME = "#Bash Argument Parser v1.4.3\n"
+	NAME = "#Bash Argument Parser v1.5.0\n"
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("--desc", type=str, default="", help="program description")
-	parser.add_argument("--usage", type=str, default="[optional-args] required-args", help="usage string") 
 	parser.add_argument("--int-args", type=str, default="", help="comma-separated list of single integer arguments (examples: -n/--num or -n or --num)")
 	parser.add_argument("--float-args", type=str, default="", help="comma-separated list of single float arguments (examples: -f/--float or -f or --float)")
 	parser.add_argument("--str-args", type=str, default="", help="comma-separated list of single string arguments (examples: -s/--str or -s or --str)")
@@ -23,11 +22,8 @@ def main():
 	
 	#bring in string args, then int args, then float args, bool args
 	
-	noflags = False
-	if args.int_args == "" and args.float_args == "" and args.str_args == "" and args.bool_args == "" and not args.add_help:
-		noflags = True
-		if args.num == 0:
-			parser.error("at least one argument is required for this to be necessary")
+	if args.int_args == "" and args.float_args == "" and args.str_args == "" and args.bool_args == "" and not args.add_help and args.num == 0:
+		parser.error("at least one argument is required for this to be necessary")
 	
 	outfile = "%s.sh" % args.progname
 
@@ -38,7 +34,7 @@ def main():
 				return
 		
 		with open(outfile, "w") as fout:
-			fout.write(header(args.num, args.desc, args.usage, noflags, NAME))
+			fout.write(header(args.num, args.desc, NAME))
 			if args.add_help:
 				fout.write(helparg())
 			fout.write(strargs(args.str_args))
@@ -52,14 +48,19 @@ def main():
 		parser.error(x)
 	
 
-def header(num, desc, usage, noflags, name):
+def header(num, desc, name):
 	result='''#!/bin/bash
-%sUSAGE=""
+%s
+USAGE="usage: `basename $0`"
+USAGE_LEN=0
+USAGE_CAP=30
 HELP=""
 PARAMS=""
 FLAG_LIST=""
 LONG_FLAG_LIST=""
 SHIFT_NUM=1
+ADDED_FLAG_HELP=false
+ADDED_POSARG_HELP=false
 FOUND_FLAG=false
 FOUND_HELP=false
 PRINT_HELP=false
@@ -68,18 +69,17 @@ BEGIN=false
 # SCRIPT OPTIONS ==========================
 NUM_POS_ARGS=%i
 DESC=$(printf "%s")
-function usage { echo "usage: `basename $0` %s"; }
 # =========================================
 
 # SCRIPT VARIABLES ==============================================================================
 
 # ===============================================================================================
 
-function die { echo $(usage); echo error: $@ >&2; exit 1; }
+function die { echo "$USAGE"; echo $@ >&2; exit 1; }
 function error {
-	[[ $# -eq 0 ]] && die
-	[[ $# -eq 1 ]] && die "$1"
-	die "argument $1: $2"
+	[[ $# -eq 0 ]] && die "error"
+	[[ $# -eq 1 ]] && die "error: $1"
+	die "error: argument $1: $2"
 }
 function check_lists { 
 	[[ $# -ne 2 ]] && error "check_lists() requires two arguments"
@@ -93,38 +93,63 @@ function check_lists {
 	fi
 }
 function add_help {
-	[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires three/four arguments"
-	local helpstr=$(printf "\n  $1")
-	local first=`cut -d / -f 1 <<< $1`
-	local second=`cut -d / -f 2 <<< $1`
-	local index=2
+	[[ -z $1 ]] && error "add_help() requires 3-4 arguments for flags, 2 arguments for positional arguments"
+	
+	if [[ ${1:0:1} = "-" ]]; then
+		[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires 3-4 arguments for flags"
+		$ADDED_FLAG_HELP || HELP=$(printf "$HELP\noptional arguments:")
+		ADDED_FLAG_HELP=true
 
-	[[ $first = $second && ! $first =~ ^-- ]] && local index=1
-	if [[ $2 -ne 0 ]]; then
+		local helpstr=$(printf "\n  $1")
+		local first=`cut -d / -f 1 <<< $1`
+		local second=`cut -d / -f 2 <<< $1`
+		local index=2
 		
-		for i in $(eval echo "{1..$2}"); do
-			if [[ -z $4 ]]; then
-				local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
-				[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
-			else
-				local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
-			fi
-		done
+		local usagestr="[$first"
+		[[ $first = $second && ! $first =~ ^-- ]] && local index=1
+		if [[ $2 -ne 0 ]]; then
+			for i in $(eval echo "{1..$2}"); do
+				if [[ -z $4 ]]; then
+					local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
+					local usagestr="$usagestr `tr [a-z] [A-Z] <<< ${second:$index}`"
+					[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i") && local usagestr="$usagestr$i"
+				else
+					local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
+					local usagestr="$usagestr `cut -d , -f $i <<< $4`"
+				fi
+			done
+		fi
+		local helpstr=$(printf "$helpstr:\n\t$3")
+		local usagestr="$usagestr]"
+	else
+		[[ $# -ne 2 ]] && error "add_help() requires 2 arguments for positional arguments"
+		$ADDED_POSARG_HELP || HELP=$(printf "$HELP\npositional arguments:")
+		ADDED_POSARG_HELP=true
+
+		local helpstr=$(printf "\n  $1:\n\t$2")
+		local usagestr=$1
 	fi
-
-	local helpstr=$(printf "$helpstr:\n\t$3")
-
+	
 	HELP=$(printf "$HELP$helpstr")
+	local num=$(( ${#usagestr} + 1 ))
+	if (( $USAGE_LEN + $num <= $USAGE_CAP || $USAGE_LEN == 0 )); then
+		(( USAGE_LEN = $num ))
+		USAGE=$(printf "$USAGE $usagestr")
+	else
+		local prestring="usage: `basename $0`"
+		USAGE=$(printf "$USAGE\\\n")
+		for i in $(eval echo "{1..${#prestring}}"); do
+			USAGE=$(printf "$USAGE ")
+		done
+		USAGE=$(printf "$USAGE $usagestr")
+		USAGE_LEN=$num
+	fi
 }
-''' % (name, num, desc, usage)
-	if not noflags:
-		result+='''
-HELP=$(printf "\\noptional arguments:")'''
-	result+='''
+
 while (( "$#" )); do
     if [[ $1 =~ ^- ]]; then
 
-'''
+''' % (name, num, desc) 
 	return result
 
 def strargs(args):
@@ -336,15 +361,12 @@ def footer(num):
 	BEGIN=true
 done
 '''
-	if num > 0:
-		result +='''HELP=$(printf "$HELP\\n\\npositional arguments:")
-'''
 	for i in range(1,num+1):
-		result+='''HELP=$(printf "$HELP\\n  posarg%i:\\n\\t<insert posarg%i help here>") #editme
+		result+='''add_help "posarg%i" "<insert posarg%i help here>" #editme
 ''' % (i, i)
 	
 	result+='''if $PRINT_HELP; then
-	echo $(usage)
+	echo "$USAGE"
 	[[ ! -z $DESC ]] && echo && echo "$DESC"
 	echo "$HELP"
 	exit 0

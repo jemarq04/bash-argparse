@@ -1,36 +1,38 @@
 #!/bin/bash
-USAGE=""
+USAGE="usage: `basename $0`"
+USAGE_LEN=0
+USAGE_CAP=30
 HELP=""
 PARAMS=""
 FLAG_LIST=""
 LONG_FLAG_LIST=""
 SHIFT_NUM=1
+ADDED_FLAG_HELP=false
+ADDED_POSARG_HELP=false
 FOUND_FLAG=false
 FOUND_HELP=false
 PRINT_HELP=false
 BEGIN=false
 
-#TODO: Automate usage string
 #TODO: Begin adding instructions on user-callable functions.
 
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
 DESC=$(printf "")
-function usage { echo "usage: `basename $0` [optional-args] required-args"; }
 # ===============================================================================================
 
 # SCRIPT VARIABLES ==============================================================================
 
 # ===============================================================================================
 
-function die { echo $(usage); echo error: $@ >&2; exit 1; }
+function die { echo "$USAGE"; echo $@ >&2; exit 1; }
 function error {
-	[[ $# -eq 0 ]] && die
-	[[ $# -eq 1 ]] && die "$1"
-	die "argument $1: $2"
+	[[ $# -eq 0 ]] && die "error"
+	[[ $# -eq 1 ]] && die "error: $1"
+	die "error: argument $1: $2"
 }
 function check_lists { 
-	[[ $# -ne 2 ]] && error "check_lists() requires two arguments"
+	[[ $# -ne 2 ]] && error "check_lists() requires 2 arguments"
 	if [[ ! $1 =~ ^-- ]]; then
 		[[ $FLAG_LIST = *"${1:1}"* ]] && error "duplicate flag $1"
 		FLAG_LIST="${1:1} $FLAG_LIST"
@@ -41,35 +43,59 @@ function check_lists {
 	fi
 }
 function add_help {
-	[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires three/four arguments"
-	local helpstr=$(printf "\n  $1")
-	local first=`cut -d / -f 1 <<< $1`
-	local second=`cut -d / -f 2 <<< $1`
-	local index=2
-
-	[[ $first = $second && ! $first =~ ^-- ]] && local index=1
-	if [[ $2 -ne 0 ]]; then
+	[[ -z $1 ]] && error "add_help() requires 3-4 arguments for flags, 2 arguments for positional arguments"
+	
+	if [[ ${1:0:1} = "-" ]]; then
+		[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires 3-4 arguments for flags"
+		$ADDED_FLAG_HELP || HELP=$(printf "$HELP\noptional arguments:")
+		ADDED_FLAG_HELP=true
 		
-		for i in $(eval echo "{1..$2}"); do
-			if [[ -z $4 ]]; then
-				local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
-				[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i")
-			else
-				local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
-			fi
-		done
+		local helpstr=$(printf "\n  $1")
+		local first=`cut -d / -f 1 <<< $1`
+		local second=`cut -d / -f 2 <<< $1`
+		local index=2
+		
+		local usagestr="[$first"
+		[[ $first = $second && ! $first =~ ^-- ]] && local index=1
+		if [[ $2 -ne 0 ]]; then
+			for i in $(eval echo "{1..$2}"); do
+				if [[ -z $4 ]]; then
+					local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
+					local usagestr="$usagestr `tr [a-z] [A-Z] <<< ${second:$index}`"
+					[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i") && local usagestr="$usagestr$i"
+				else
+					local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
+					local usagestr="$usagestr `cut -d , -f $i <<< $4`"
+				fi
+			done
+		fi
+		local helpstr=$(printf "$helpstr:\n\t$3")
+		local usagestr="$usagestr]"
+	else
+		[[ $# -ne 2 ]] && error "add_help() requires 2 arguments for positional arguments"
+		$ADDED_POSARG_HELP || HELP=$(printf "$HELP\npositional arguments:")
+		ADDED_POSARG_HELP=true
+
+		local helpstr=$(printf "\n  $1:\n\t$2")
+		local usagestr=$1
 	fi
-
-	local helpstr=$(printf "$helpstr:\n\t$3")
-
+	
 	HELP=$(printf "$HELP$helpstr")
+	local num=$(( ${#usagestr} + 1 ))
+	if (( $USAGE_LEN + $num <= $USAGE_CAP || $USAGE_LEN == 0 )); then
+		(( USAGE_LEN = $num ))
+		USAGE=$(printf "$USAGE $usagestr")
+	else
+		local prestring="usage: `basename $0`"
+		USAGE=$(printf "$USAGE\\\n")
+		for i in $(eval echo "{1..${#prestring}}"); do
+			USAGE=$(printf "$USAGE ")
+		done
+		USAGE=$(printf "$USAGE $usagestr")
+		USAGE_LEN=$num
+	fi
 }
 
-add_help "-s/--str" 2 "help stuff"
-echo "$HELP"
-exit 0
-
-HELP=$(printf "\noptional arguments:")
 while (( "$#" )); do
 	if [[ $1 =~ ^- ]]; then
 		
@@ -129,7 +155,7 @@ while (( "$#" )); do
 		
 		# INT FLAG ====================================================================================
 		arg="-n/--num"
-		nargs=1
+		nargs=2
 		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=""
 		first=`cut -d / -f 1 <<< $arg`
@@ -244,10 +270,9 @@ while (( "$#" )); do
 	FOUND_HELP=false
 	BEGIN=true
 done
-HELP=$(printf "$HELP\n\npositional arguments:")
-HELP=$(printf "$HELP\n  posarg1:\n\t<insert posarg1 help here>") #editme
+add_help "posarg1" "<insert posarg1 help here>" #editme
 if $PRINT_HELP; then
-	echo $(usage)
+	echo "$USAGE"
 	[[ ! -z $DESC ]] && echo && echo "$DESC"
 	echo "$HELP"
 	exit 0
