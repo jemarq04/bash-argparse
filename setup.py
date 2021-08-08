@@ -360,12 +360,17 @@ def footer(num):
 	FOUND_HELP=false
 	BEGIN=true
 done
+# POSITIONAL ARGUMENTS ==========================================================================
+
 '''
 	for i in range(1,num+1):
 		result+='''add_help "posarg%i" "<insert posarg%i help here>" #editme
 ''' % (i, i)
+	if num:
+		result+="\n"
 	
-	result+='''if $PRINT_HELP; then
+	result+='''# ===============================================================================================
+if $PRINT_HELP; then
 	echo "$USAGE"
 	[[ ! -z $DESC ]] && echo && echo "$DESC"
 	echo "$HELP"

@@ -270,7 +270,11 @@ while (( "$#" )); do
 	FOUND_HELP=false
 	BEGIN=true
 done
+# POSITIONAL ARGUMENTS ==========================================================================
+
 add_help "posarg1" "<insert posarg1 help here>" #editme
+
+# ===============================================================================================
 if $PRINT_HELP; then
 	echo "$USAGE"
 	[[ ! -z $DESC ]] && echo && echo "$DESC"
