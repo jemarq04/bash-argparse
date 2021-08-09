@@ -1,7 +1,9 @@
 #!/bin/bash
 USAGE="usage: `basename $0`"
+PREUSAGE=${#USAGE}
 USAGE_LEN=0
-USAGE_CAP=30
+DESC_LEN=0
+LINE_CAP=50
 HELP=""
 PARAMS=""
 FLAG_LIST=""
@@ -10,13 +12,12 @@ SHIFT_NUM=1
 ADDED_FLAG_HELP=false
 ADDED_POSARG_HELP=false
 FOUND_FLAG=false
-FOUND_HELP=false
 PRINT_HELP=false
 BEGIN=false
 
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
-DESC=$(printf "This is a demonstration of the argument parser's capabilities.")
+DESC="This is a demonstration of the argument parser's capabilities."
 # ===============================================================================================
 
 # SCRIPT VARIABLES ==============================================================================
@@ -28,6 +29,21 @@ function error {
 	[[ $# -eq 0 ]] && die "error"
 	[[ $# -eq 1 ]] && die "error: $1"
 	die "error: argument $1: $2"
+}
+function format_desc {
+	local descstring=$DESC
+	DESC=""
+	for word in $descstring; do
+		local num=${#word}
+		if (( $DESC_LEN + $num + 1 > $LINE_CAP || $DESC_LEN == 0 )); then
+			DESC=$(printf "$DESC\n$word")
+			(( DESC_LEN = $num ))
+		else
+			DESC=$(printf "$DESC $word")
+			(( DESC_LEN += $num + 1 ))
+		fi
+	done
+	echo "$DESC"
 }
 function check_lists { 
 	[[ $# -ne 2 ]] && error "check_lists() requires 2 arguments"
@@ -80,8 +96,8 @@ function add_help {
 	
 	HELP=$(printf "$HELP$helpstr")
 	local num=$(( ${#usagestr} + 1 ))
-	if (( $USAGE_LEN + $num <= $USAGE_CAP || $USAGE_LEN == 0 )); then
-		(( USAGE_LEN = $num ))
+	if (( $PREUSAGE + $USAGE_LEN + $num <= $LINE_CAP || $USAGE_LEN == 0 )); then
+		(( USAGE_LEN += $num ))
 		USAGE=$(printf "$USAGE $usagestr")
 	else
 		local prestring="usage: `basename $0`"
@@ -104,7 +120,6 @@ while (( "$#" )); do
 		second=`cut -d / -f 2 <<< $arg`
 		if $BEGIN; then
 			if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
-				FOUND_HELP=true
 				PRINT_HELP=true
 				FOUND_FLAG=true
 			fi
@@ -150,7 +165,6 @@ while (( "$#" )); do
 		fi
 		[[ ${#argval[@]} -ne 0 ]] && echo "$arg:${argval[@]}" #editme: store the value of $argval. error-check as needed
 		# END =========================================================================================
-		echo new @: $@
 		
 		# INT FLAG ====================================================================================
 		arg="-n/--num" #editme
@@ -266,7 +280,6 @@ while (( "$#" )); do
 	$BEGIN && shift $SHIFT_NUM
 	SHIFT_NUM=1
 	FOUND_FLAG=false
-	FOUND_HELP=false
 	BEGIN=true
 done
 # POSITIONAL ARGUMENTS ==========================================================================
@@ -276,7 +289,7 @@ add_help "posarg1" "<insert posarg1 help here>" #editme
 # ===============================================================================================
 if $PRINT_HELP; then
 	echo "$USAGE"
-	[[ ! -z $DESC ]] && echo && echo "$DESC"
+	[[ ! -z $DESC ]] && echo "$(format_desc)"
 	echo "$HELP"
 	exit 0
 fi

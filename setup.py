@@ -7,7 +7,7 @@ def main():
 			NOTE: The only thing that it doesn't account for is HELP\
 			information for each argument and $nargs, which must be\
 			edited manually."
-	NAME = "#Bash Argument Parser (BAP) v1.5.1\n"
+	NAME = "#Bash Argument Parser (BAP) v1.5.2\n"
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("--version", action="version", version="Bash Argument Parser (BAP) v1.5.0", help="print the version and exit")
@@ -51,8 +51,10 @@ def header(num, desc, name):
 	result='''#!/bin/bash
 %s
 USAGE="usage: `basename $0`"
+PREUSAGE=${#USAGE}
 USAGE_LEN=0
-USAGE_CAP=30
+DESC_LEN=0
+LINE_CAP=50
 HELP=""
 PARAMS=""
 FLAG_LIST=""
@@ -61,13 +63,12 @@ SHIFT_NUM=1
 ADDED_FLAG_HELP=false
 ADDED_POSARG_HELP=false
 FOUND_FLAG=false
-FOUND_HELP=false
 PRINT_HELP=false
 BEGIN=false
 
 # SCRIPT OPTIONS ==========================
 NUM_POS_ARGS=%i
-DESC=$(printf "%s")
+DESC="%s"
 # =========================================
 
 # SCRIPT VARIABLES ==============================================================================
@@ -79,6 +80,21 @@ function error {
 	[[ $# -eq 0 ]] && die "error"
 	[[ $# -eq 1 ]] && die "error: $1"
 	die "error: argument $1: $2"
+}
+function format_desc {
+	local descstring=$DESC
+	DESC=""
+	for word in $descstring; do
+		local num=${#word}
+		if (( $DESC_LEN + $num + 1 > $LINE_CAP || $DESC_LEN == 0 )); then
+			DESC=$(printf "$DESC\n$word")
+			(( DESC_LEN = $num ))
+		else
+			DESC=$(printf "$DESC $word")
+			(( DESC_LEN += $num + 1 ))
+		fi
+	done
+	echo "$DESC"
 }
 function check_lists { 
 	[[ $# -ne 2 ]] && error "check_lists() requires two arguments"
@@ -98,7 +114,7 @@ function add_help {
 		[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires 3-4 arguments for flags"
 		$ADDED_FLAG_HELP || HELP=$(printf "$HELP\noptional arguments:")
 		ADDED_FLAG_HELP=true
-
+		
 		local helpstr=$(printf "\n  $1")
 		local first=`cut -d / -f 1 <<< $1`
 		local second=`cut -d / -f 2 <<< $1`
@@ -131,8 +147,8 @@ function add_help {
 	
 	HELP=$(printf "$HELP$helpstr")
 	local num=$(( ${#usagestr} + 1 ))
-	if (( $USAGE_LEN + $num <= $USAGE_CAP || $USAGE_LEN == 0 )); then
-		(( USAGE_LEN = $num ))
+	if (( $PREUSAGE + $USAGE_LEN + $num <= $LINE_CAP || $USAGE_LEN == 0 )); then
+		(( USAGE_LEN += $num ))
 		USAGE=$(printf "$USAGE $usagestr")
 	else
 		local prestring="usage: `basename $0`"
@@ -327,7 +343,6 @@ def helparg():
         second=`cut -d / -f 2 <<< $arg`
         if $BEGIN; then
             if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
-				FOUND_HELP=true
 				PRINT_HELP=true
 				FOUND_FLAG=true
             fi
@@ -356,7 +371,6 @@ def footer(num):
 	$BEGIN && shift $SHIFT_NUM
 	SHIFT_NUM=1
 	FOUND_FLAG=false
-	FOUND_HELP=false
 	BEGIN=true
 done
 # POSITIONAL ARGUMENTS ==========================================================================
@@ -371,7 +385,7 @@ done
 	result+='''# ===============================================================================================
 if $PRINT_HELP; then
 	echo "$USAGE"
-	[[ ! -z $DESC ]] && echo && echo "$DESC"
+	[[ ! -z $DESC ]] && echo "$(format_desc)"
 	echo "$HELP"
 	exit 0
 fi
