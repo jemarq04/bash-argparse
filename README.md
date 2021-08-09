@@ -15,12 +15,11 @@ denoted by long one-line comments surrounding an area. For example, this will be
 ```
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
-DESC=$(printf "")
+DESC=""
 # ===============================================================================================
 ```
 To add a description to your script and change the number of required positional arguments, just change these variables! 
-To change the description, make sure you put your description string *inside* the double quotes. This will allow you to
-use newline characters (`\n`) and tab characters (`\t`) in your description!
+To change the description, just change the `$DESC` string! The script will automatically bring in newlines as needed.
 
 There will be empty code blocks in the script for you to add your own variables/logic. They do not need to be filled, but are there as a guide to help you
 organize your code.
