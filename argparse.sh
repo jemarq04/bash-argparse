@@ -1,4 +1,5 @@
 #!/bin/bash
+#Bash Argument Parser (BAP) v1.5.4
 USAGE="usage: `basename $0`"
 PREUSAGE=${#USAGE}
 USAGE_LEN=0

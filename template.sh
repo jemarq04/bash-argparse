@@ -1,7 +1,11 @@
 #!/bin/bash
+#Bash Argument Parser (BAP) v1.5.4
 USAGE="usage: `basename $0`"
+PREUSAGE=${#USAGE}
 USAGE_LEN=0
-USAGE_CAP=30
+DESC_LEN=0
+HELP_LEN=0
+LINE_CAP=50
 HELP=""
 PARAMS=""
 FLAG_LIST=""
@@ -10,13 +14,14 @@ SHIFT_NUM=1
 ADDED_FLAG_HELP=false
 ADDED_POSARG_HELP=false
 FOUND_FLAG=false
-FOUND_HELP=false
 PRINT_HELP=false
+PRINT_VERSION=false
 BEGIN=false
 
 # SCRIPT OPTIONS ================================================================================
-NUM_POS_ARGS=0 #editme
-DESC=$(printf "") #editme
+NUM_POS_ARGS=1 #editme
+DESC="" #editme
+VERSION="" #editme
 # ===============================================================================================
 
 # SCRIPT VARIABLES ==============================================================================
@@ -39,6 +44,21 @@ function check_lists {
 		[[ $LONG_FLAG_LIST = *"$2"* ]] && error "duplicate long flag $2"
 		LONG_FLAG_LIST="$2 $LONG_FLAG_LIST"
 	fi
+}
+function format_desc {
+	local descstring=$DESC
+	DESC=""
+	for word in $descstring; do
+		local num=${#word}
+		if (( $DESC_LEN + $num + 1 > $LINE_CAP || $DESC_LEN == 0 )); then
+			DESC=$(printf "$DESC\n$word")
+			(( DESC_LEN = $num ))
+		else
+			DESC=$(printf "$DESC $word")
+			(( DESC_LEN += $num + 1 ))
+		fi
+	done
+	echo "$DESC"
 }
 function add_help {
 	[[ -z $1 ]] && error "add_help() requires 3-4 arguments for flags, 2 arguments for positional arguments"
@@ -67,21 +87,53 @@ function add_help {
 				fi
 			done
 		fi
-		local helpstr=$(printf "$helpstr:\n\t$3")
+		local helpstr=$(printf "$helpstr:\n\t")
+		HELP_LEN=0
+		for word in $3; do
+			local num=${#word}
+			if (( $HELP_LEN + $num + 4 <= $LINE_CAP )); then
+				if (( $HELP_LEN == 0 )); then
+					local helpstr=$(printf "$helpstr$word")
+					HELP_LEN=$num
+				else
+					local helpstr=$(printf "$helpstr $word")
+					(( HELP_LEN += $num + 1 ))
+				fi
+			else
+				local helpstr=$(printf "$helpstr\n\t$word")
+				HELP_LEN=$num
+			fi
+		done
 		local usagestr="$usagestr]"
 	else
 		[[ $# -ne 2 ]] && error "add_help() requires 2 arguments for positional arguments"
 		$ADDED_POSARG_HELP || HELP=$(printf "$HELP\npositional arguments:")
 		ADDED_POSARG_HELP=true
 
-		local helpstr=$(printf "\n  $1:\n\t$2")
+		local helpstr=$(printf "\n  $1:\n\t")
+		HELP_LEN=0
+		for word in $2; do
+			local num=${#word}
+			if (( $HELP_LEN + $num + 8 <= $LINE_CAP )); then
+				if (( $HELP_LEN == 0 )); then
+					local helpstr=$(printf "$helpstr$word")
+					HELP_LEN=$num
+				else
+					local helpstr=$(printf "$helpstr $word")
+					(( HELP_LEN = $num + 1 ))
+				fi
+			else
+				local helpstr=$(printf "$helpstr\n\t$word")
+				HELP_LEN=$num
+			fi
+		done
 		local usagestr=$1
 	fi
 	
 	HELP=$(printf "$HELP$helpstr")
 	local num=$(( ${#usagestr} + 1 ))
-	if (( $USAGE_LEN + $num <= $USAGE_CAP || $USAGE_LEN == 0 )); then
-		(( USAGE_LEN = $num ))
+	if (( $PREUSAGE + $USAGE_LEN + $num <= $LINE_CAP || $USAGE_LEN == 0 )); then
+		(( USAGE_LEN += $num ))
 		USAGE=$(printf "$USAGE $usagestr")
 	else
 		local prestring="usage: `basename $0`"
@@ -114,7 +166,6 @@ while (( "$#" )); do
 	$BEGIN && shift $SHIFT_NUM
 	SHIFT_NUM=1
 	FOUND_FLAG=false
-	FOUND_HELP=false
 	BEGIN=true
 done
 # POSITIONAL ARGUMENTS ==========================================================================
@@ -122,8 +173,13 @@ done
 # ===============================================================================================
 if $PRINT_HELP; then
 	echo "$USAGE"
-	[[ ! -z $DESC ]] && echo && echo "$DESC"
+	[[ ! -z $DESC ]] && echo "$(format_desc)"
 	echo "$HELP"
+	exit 0
+fi
+if $PRINT_VERSION; then
+	[[ -z $VERSION ]] && error "version string is empty"
+	echo $VERSION
 	exit 0
 fi
 for w in $PARAMS; do set -- "$@" "$w"; done
