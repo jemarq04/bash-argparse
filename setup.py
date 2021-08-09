@@ -7,7 +7,7 @@ def main():
 			NOTE: The only thing that it doesn't account for is HELP\
 			information for each argument and $nargs, which must be\
 			edited manually."
-	NAME = "#Bash Argument Parser (BAP) v1.5.0\n"
+	NAME = "#Bash Argument Parser (BAP) v1.5.1\n"
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("--version", action="version", version="Bash Argument Parser (BAP) v1.5.0", help="print the version and exit")
@@ -183,7 +183,7 @@ def strargs(args):
 				FOUND_FLAG=true
 			elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
 				[[ $nargs -ne 1 ]] && error $arg "expected $nargs arguments"
-				argval+=("`cut -d ${first:1} -f 2 <<< $1`")
+				argval+=("`cut -d ${first:1} -f 2- <<< $1`")
 				FOUND_FLAG=true
 				set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 				[[ ${argval[0]} = *"h"* && ! "`cut -d ${first:1} -f 1 <<< $1`" = *"h"* ]] && PRINT_HELP=false

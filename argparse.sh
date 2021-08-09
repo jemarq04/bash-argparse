@@ -140,7 +140,7 @@ while (( "$#" )); do
 				FOUND_FLAG=true
 			elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
 				[[ $nargs -ne 1 ]] && error $arg "expected $nargs arguments"
-				argval+=("`cut -d ${first:1} -f 2 <<< $1`")
+				argval+=("`cut -d ${first:1} -f 2- <<< $1`")
 				FOUND_FLAG=true
 				set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 				[[ ${argval[0]} = *"h"* && ! "`cut -d ${first:1} -f 1 <<< $1`" = *"h"* ]] && PRINT_HELP=false
@@ -150,6 +150,7 @@ while (( "$#" )); do
 		fi
 		[[ ${#argval[@]} -ne 0 ]] && echo "$arg:${argval[@]}" #editme: store the value of $argval. error-check as needed
 		# END =========================================================================================
+		echo new @: $@
 		
 		# INT FLAG ====================================================================================
 		arg="-n/--num" #editme
