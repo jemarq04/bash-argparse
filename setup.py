@@ -7,12 +7,13 @@ def main():
 			NOTE: The only thing that it doesn't account for is HELP\
 			information for each argument and $nargs, which must be\
 			edited manually."
-	NAME = "#Bash Argument Parser (BAP) v1.5.3\n"
+	NAME = "#Bash Argument Parser (BAP) v1.5.4\n"
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("--version", action="version", version="Bash Argument Parser (BAP) v1.5.0", help="print the version and exit")
 	parser.add_argument("--desc", type=str, default="", help="program description")
 	parser.add_argument("--add-help", action="store_true", help="if given, will add help to the program")
+	parser.add_argument("--add-version", type=str, default="", help="add version string to script")
 	parser.add_argument("--int-args", type=str, default="", help="comma-separated list of single integer arguments (examples: -n/--num or -n or --num)")
 	parser.add_argument("--float-args", type=str, default="", help="comma-separated list of single float arguments (examples: -f/--float or -f or --float)")
 	parser.add_argument("--str-args", type=str, default="", help="comma-separated list of single string arguments (examples: -s/--str or -s or --str)")
@@ -33,21 +34,23 @@ def main():
 				return
 		
 		with open(outfile, "w") as fout:
-			fout.write(header(args.num, args.desc, NAME))
+			fout.write(header(args.num, args.desc, NAME, args.add_version))
 			if args.add_help:
 				fout.write(helparg())
+			if args.add_version != "":
+				fout.write(versionarg(args.add_version))
 			fout.write(strargs(args.str_args))
 			fout.write(intargs(args.int_args))
 			fout.write(floatargs(args.float_args))
 			fout.write(boolargs(args.bool_args))
-			fout.write(footer(args.num))
+			fout.write(footer(args.num, args.add_version))
 		
 		os.chmod(outfile, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR | stat.S_IRGRP | stat.S_IROTH)
 	except IOError as x:
 		parser.error(x)
 	
 
-def header(num, desc, name):
+def header(num, desc, name, version):
 	result='''#!/bin/bash
 %s
 USAGE="usage: `basename $0`"
@@ -65,11 +68,13 @@ ADDED_FLAG_HELP=false
 ADDED_POSARG_HELP=false
 FOUND_FLAG=false
 PRINT_HELP=false
+PRINT_VERSION=false
 BEGIN=false
 
 # SCRIPT OPTIONS ==========================
 NUM_POS_ARGS=%i
 DESC="%s"
+VERSION="%s"
 # =========================================
 
 # SCRIPT VARIABLES ==============================================================================
@@ -197,7 +202,7 @@ function add_help {
 while (( "$#" )); do
     if [[ $1 =~ ^- ]]; then
 
-''' % (name, num, desc) 
+''' % (name, num, desc, version)
 	return result
 
 def strargs(args):
@@ -386,6 +391,24 @@ def helparg():
 		
 '''
 
+def versionarg(version):
+	return '''		# VERSION FLAG ================================================================================
+		arg="--version"
+		$BEGIN || add_help $arg 0 "print the version and exit"
+		first=`cut -d / -f 1 <<< $arg`
+		second=`cut -d / -f 2 <<< $arg`
+		if $BEGIN; then
+			if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+				PRINT_VERSION=true
+				FOUND_FLAG=true
+			fi
+		else
+			check_lists $first $second
+		fi
+		# END =========================================================================================
+		
+'''
+
 def footer(num):
 	result='''		if $BEGIN; then
 			[[ $FOUND_FLAG = false ]] && error "unrecognized argument: $1"
@@ -422,7 +445,15 @@ if $PRINT_HELP; then
 	echo "$HELP"
 	exit 0
 fi
-for w in $PARAMS; do set -- "$@" "$w"; done
+'''
+	if version != "":
+		result+='''if $PRINT_VERSION; then
+	[[ -z $VERSION ]] && error "version string is empty"
+	echo $VERSION
+	exit 0
+fi
+'''
+	result+='''for w in $PARAMS; do set -- "$@" "$w"; done
 [[ $# -lt $NUM_POS_ARGS ]] && error "too few arguments"
 [[ $# -gt $NUM_POS_ARGS ]] && error "too many arguments"
 

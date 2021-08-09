@@ -14,11 +14,13 @@ ADDED_FLAG_HELP=false
 ADDED_POSARG_HELP=false
 FOUND_FLAG=false
 PRINT_HELP=false
+PRINT_VERSION=false
 BEGIN=false
 
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
 DESC="This is a demonstration of the argument parser's capabilities."
+VERSION="BAP v1.5.3"
 # ===============================================================================================
 
 # SCRIPT VARIABLES ==============================================================================
@@ -148,12 +150,27 @@ while (( "$#" )); do
 		
 		# HELP FLAG ===================================================================================
 		arg="-h/--help"
-		$BEGIN || add_help $arg 0 "print this help message and exit let's keep typing to see what happens"
+		$BEGIN || add_help $arg 0 "print this help message and exit"
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
 		if $BEGIN; then
 			if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
 				PRINT_HELP=true
+				FOUND_FLAG=true
+			fi
+		else
+			check_lists $first $second
+		fi
+		# END =========================================================================================
+		
+		# VERSION FLAG ================================================================================
+		arg="--version"
+		$BEGIN || add_help $arg 0 "print the version and exit"
+		first=`cut -d / -f 1 <<< $arg`
+		second=`cut -d / -f 2 <<< $arg`
+		if $BEGIN; then
+			if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+				PRINT_VERSION=true
 				FOUND_FLAG=true
 			fi
 		else
@@ -324,6 +341,11 @@ if $PRINT_HELP; then
 	echo "$USAGE"
 	[[ ! -z $DESC ]] && echo "$(format_desc)"
 	echo "$HELP"
+	exit 0
+fi
+if $PRINT_VERSION; then
+	[[ -z $VERSION ]] && error "version string is empty"
+	echo $VERSION
 	exit 0
 fi
 for w in $PARAMS; do set -- "$@" "$w"; done
