@@ -3,6 +3,7 @@ USAGE="usage: `basename $0`"
 PREUSAGE=${#USAGE}
 USAGE_LEN=0
 DESC_LEN=0
+HELP_LEN=0
 LINE_CAP=50
 HELP=""
 PARAMS=""
@@ -83,14 +84,46 @@ function add_help {
 				fi
 			done
 		fi
-		local helpstr=$(printf "$helpstr:\n\t$3")
+		local helpstr=$(printf "$helpstr:\n\t")
+		HELP_LEN=0
+		for word in $3; do
+			local num=${#word}
+			if (( $HELP_LEN + $num + 4 <= $LINE_CAP )); then
+				if (( $HELP_LEN == 0 )); then
+					local helpstr=$(printf "$helpstr$word")
+					HELP_LEN=$num
+				else
+					local helpstr=$(printf "$helpstr $word")
+					(( HELP_LEN += $num + 1 ))
+				fi
+			else
+				local helpstr=$(printf "$helpstr\n\t$word")
+				HELP_LEN=$num
+			fi
+		done
 		local usagestr="$usagestr]"
 	else
 		[[ $# -ne 2 ]] && error "add_help() requires 2 arguments for positional arguments"
 		$ADDED_POSARG_HELP || HELP=$(printf "$HELP\npositional arguments:")
 		ADDED_POSARG_HELP=true
 
-		local helpstr=$(printf "\n  $1:\n\t$2")
+		local helpstr=$(printf "\n  $1:\n\t")
+		HELP_LEN=0
+		for word in $2; do
+			local num=${#word}
+			if (( $HELP_LEN + $num + 8 <= $LINE_CAP )); then
+				if (( $HELP_LEN == 0 )); then
+					local helpstr=$(printf "$helpstr$word")
+					HELP_LEN=$num
+				else
+					local helpstr=$(printf "$helpstr $word")
+					(( HELP_LEN = $num + 1 ))
+				fi
+			else
+				local helpstr=$(printf "$helpstr\n\t$word")
+				HELP_LEN=$num
+			fi
+		done
 		local usagestr=$1
 	fi
 	
@@ -115,7 +148,7 @@ while (( "$#" )); do
 		
 		# HELP FLAG ===================================================================================
 		arg="-h/--help"
-		$BEGIN || add_help $arg 0 "print this help message and exit"
+		$BEGIN || add_help $arg 0 "print this help message and exit let's keep typing to see what happens"
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
 		if $BEGIN; then
