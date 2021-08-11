@@ -7,7 +7,7 @@ def main():
 			NOTE: The only thing that it doesn't account for is HELP\
 			information for each argument and $nargs, which must be\
 			edited manually."
-	NAME = "#Bash Argument Parser (BAP) v1.5.4\n"
+	NAME = "#Bash Argument Parser (BAP) v1.5.5\n"
 
 	parser = argparse.ArgumentParser(description=DESC, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 	parser.add_argument("--version", action="version", version="Bash Argument Parser (BAP) v1.5.0", help="print the version and exit")
@@ -63,6 +63,8 @@ HELP=""
 PARAMS=""
 FLAG_LIST=""
 LONG_FLAG_LIST=""
+REQ_ARG_LIST=""
+GIVEN_REQ_ARG_LIST=""
 SHIFT_NUM=1
 ADDED_FLAG_HELP=false
 ADDED_POSARG_HELP=false
@@ -93,7 +95,7 @@ function format_desc {
 	for word in $descstring; do
 		local num=${#word}
 		if (( $DESC_LEN + $num + 1 > $LINE_CAP || $DESC_LEN == 0 )); then
-			DESC=$(printf "$DESC\n$word")
+			DESC=$(printf "$DESC\\n$word")
 			(( DESC_LEN = $num ))
 		else
 			DESC=$(printf "$DESC $word")
@@ -103,46 +105,50 @@ function format_desc {
 	echo "$DESC"
 }
 function check_lists { 
-	[[ $# -ne 2 ]] && error "check_lists() requires two arguments"
-	if [[ ! $1 =~ ^-- ]]; then
-		[[ $FLAG_LIST = *"${1:1}"* ]] && error "duplicate flag $1"
-		FLAG_LIST="${1:1} $FLAG_LIST"
+	[[ $# -ne 2 ]] && error "check_lists() requires 2 arguments"
+	first=`cut -d / -f 1 <<< $1`
+	second=`cut -d / -f 2 <<< $1`
+	if [[ ! $first =~ ^-- ]]; then
+		[[ $FLAG_LIST = *"${first:1}"* ]] && error "duplicate flag $first"
+		FLAG_LIST="${first:1} $FLAG_LIST"
 	fi
-	if [[ ${2:0:2} = "--" ]]; then
-		[[ $LONG_FLAG_LIST = *"$2"* ]] && error "duplicate long flag $2"
-		LONG_FLAG_LIST="$2 $LONG_FLAG_LIST"
+	if [[ $second =~ ^-- ]]; then
+		[[ $LONG_FLAG_LIST = *"$second"* ]] && error "duplicate long flag $second"
+		LONG_FLAG_LIST="$second $LONG_FLAG_LIST"
 	fi
+	if $2; then REQ_ARG_LIST="$1 $REQ_ARG_LIST"; fi
 }
 function add_help {
-	[[ -z $1 ]] && error "add_help() requires 3-4 arguments for flags, 2 arguments for positional arguments"
+	[[ -z $1 ]] && error "add_help() requires 4-5 arguments for flags, 2 arguments for positional arguments"
 	
 	if [[ ${1:0:1} = "-" ]]; then
-		[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires 3-4 arguments for flags"
-		$ADDED_FLAG_HELP || HELP=$(printf "$HELP\noptional arguments:")
+		[[ $# -lt 4 || $# -gt 5 ]] && error "add_help() requires 4-5 arguments for flags"
+		$ADDED_FLAG_HELP || HELP=$(printf "$HELP\\noptional arguments:")
 		ADDED_FLAG_HELP=true
 		
-		local helpstr=$(printf "\n  $1")
+		local helpstr=$(printf "\\n  $1")
 		local first=`cut -d / -f 1 <<< $1`
 		local second=`cut -d / -f 2 <<< $1`
 		local index=2
 		
-		local usagestr="[$first"
+		$3 || local usagestr="["
+		local usagestr="$usagestr$first"
 		[[ $first = $second && ! $first =~ ^-- ]] && local index=1
 		if [[ $2 -ne 0 ]]; then
 			for i in $(eval echo "{1..$2}"); do
-				if [[ -z $4 ]]; then
+				if [[ -z $5 ]]; then
 					local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
 					local usagestr="$usagestr `tr [a-z] [A-Z] <<< ${second:$index}`"
 					[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i") && local usagestr="$usagestr$i"
 				else
-					local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
-					local usagestr="$usagestr `cut -d , -f $i <<< $4`"
+					local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $5`")
+					local usagestr="$usagestr `cut -d , -f $i <<< $5`"
 				fi
 			done
 		fi
-		local helpstr=$(printf "$helpstr:\n\t")
+		local helpstr=$(printf "$helpstr:\\n\\t")
 		HELP_LEN=0
-		for word in $3; do
+		for word in $4; do
 			local num=${#word}
 			if (( $HELP_LEN + $num + 4 <= $LINE_CAP )); then
 				if (( $HELP_LEN == 0 )); then
@@ -153,17 +159,17 @@ function add_help {
 					(( HELP_LEN += $num + 1 ))
 				fi
 			else
-				local helpstr=$(printf "$helpstr\n\t$word")
+				local helpstr=$(printf "$helpstr\\n\\t$word")
 				HELP_LEN=$num
 			fi
 		done
-		local usagestr="$usagestr]"
+		$3 || local usagestr="$usagestr]"
 	else
 		[[ $# -ne 2 ]] && error "add_help() requires 2 arguments for positional arguments"
-		$ADDED_POSARG_HELP || HELP=$(printf "$HELP\npositional arguments:")
+		$ADDED_POSARG_HELP || HELP=$(printf "$HELP\\npositional arguments:")
 		ADDED_POSARG_HELP=true
 
-		local helpstr=$(printf "\n  $1:\n\t")
+		local helpstr=$(printf "\\n  $1:\\n\\t")
 		HELP_LEN=0
 		for word in $2; do
 			local num=${#word}
@@ -176,7 +182,7 @@ function add_help {
 					(( HELP_LEN = $num + 1 ))
 				fi
 			else
-				local helpstr=$(printf "$helpstr\n\t$word")
+				local helpstr=$(printf "$helpstr\\n\\t$word")
 				HELP_LEN=$num
 			fi
 		done
@@ -190,7 +196,7 @@ function add_help {
 		USAGE=$(printf "$USAGE $usagestr")
 	else
 		local prestring="usage: `basename $0`"
-		USAGE=$(printf "$USAGE\\\n")
+		USAGE=$(printf "$USAGE\\\\\\n")
 		for i in $(eval echo "{1..${#prestring}}"); do
 			USAGE=$(printf "$USAGE ")
 		done
@@ -212,8 +218,9 @@ def strargs(args):
 	for arg in args.split(','):
 		result+='''        # STR FLAG ====================================================================================
         arg="%s"
-		nargs=1
-		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
+		nargs=1 #editme
+		requred=false #editme
+		$BEGIN || add_help $arg $nargs $required "<insert $arg help here>" #editme
 		argval=()
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
@@ -243,8 +250,9 @@ def strargs(args):
 				[[ ${argval[0]} = *"h"* && ! "`cut -d ${first:1} -f 1 <<< $1`" = *"h"* ]] && PRINT_HELP=false
 			fi
 		else
-			check_lists $first $second
+			check_lists $arg $required
 		fi
+		$required && [[ ${#argval[@]} -ne 0 ]] && GIVEN_REQ_ARG_LIST="$arg $GIVEN_REQ_ARG_LIST"
 		[[ ${#argval[@]} -ne 0 ]] && echo "$arg:${argval[@]}" #editme: store the value of $argval. error-check as needed
 		# END =========================================================================================
 		
@@ -259,8 +267,9 @@ def intargs(args):
 	for arg in args.split(','):
 		result+='''        # INT FLAG ====================================================================================
         arg="%s"
-		nargs=1
-		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
+		nargs=1 #editme
+		required=false #editme
+		$BEGIN || add_help $arg $nargs $required "<insert $arg help here>" #editme
 		argval=""
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
@@ -292,8 +301,9 @@ def intargs(args):
 				set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 			fi
 		else
-			check_lists $first $second
+			check_lists $arg $required
 		fi
+		$required && [[ ! -z $argval ]] && GIVEN_REQ_ARG_LIST="$arg $GIVEN_REQ_ARG_LIST"
 		[[ ! -z $argval ]] && echo $arg:$argval #editme: store the value of $argval. error-check as needed
         # END =========================================================================================
 		
@@ -307,7 +317,8 @@ def floatargs(args):
 	for arg in args.split(','):
 		result+='''        # FLOAT FLAG ==================================================================================
         arg="%s"
-		nargs=1
+		nargs=1 #editme
+		required=false #editme
 		$BEGIN || add_help $arg $nargs "<insert $arg help here>" #editme
 		argval=""
 		first=`cut -d / -f 1 <<< $arg`
@@ -340,8 +351,9 @@ def floatargs(args):
 				set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 			fi
 		else
-			check_lists $first $second
+			check_lists $arg $required
 		fi
+		$required && [[ ! -z $argval ]] && GIVEN_REQ_ARG_LIST="$arg $GIVEN_REQ_ARG_LIST"
 		[[ ! -z $argval ]] && echo $arg:$argval #editme: store the value of $argval. error-check as needed
         # END =========================================================================================
 		
@@ -355,7 +367,8 @@ def boolargs(args):
 	for arg in args.split(','):
 		result+='''        # BOOL FLAG ===================================================================================
         arg="%s"
-		$BEGIN || add_help $arg 0 "<insert $arg help here>" #editme
+		required=false
+		$BEGIN || add_help $arg 0 $required "<insert $arg help here>" #editme
 		argval=false
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
@@ -365,8 +378,9 @@ def boolargs(args):
 				FOUND_FLAG=true
 			fi
 		else
-			check_lists $first $second
+			check_lists $arg $required
 		fi
+		$required && [[ ! -z $argval ]] && GIVEN_REQ_ARG_LIST="$arg $GIVEN_REQ_ARG_LIST"
 		$argval && echo $arg:$argval #editme: store the value of $argval. error-check as needed
         # END =========================================================================================
 
@@ -376,7 +390,7 @@ def boolargs(args):
 def helparg():
 	return '''        # HELP FLAG ===================================================================================
         arg="-h/--help"
-		$BEGIN || add_help $arg 0 "print this help message and exit"
+		$BEGIN || add_help $arg 0 false "print this help message and exit"
         first=`cut -d / -f 1 <<< $arg`
         second=`cut -d / -f 2 <<< $arg`
         if $BEGIN; then
@@ -385,7 +399,7 @@ def helparg():
 				FOUND_FLAG=true
             fi
         else
-            check_lists $first $second
+            check_lists $arg false
         fi
         # END =========================================================================================
 		
@@ -394,7 +408,7 @@ def helparg():
 def versionarg(version):
 	return '''		# VERSION FLAG ================================================================================
 		arg="--version"
-		$BEGIN || add_help $arg 0 "print the version and exit"
+		$BEGIN || add_help $arg 0 false "print the version and exit"
 		first=`cut -d / -f 1 <<< $arg`
 		second=`cut -d / -f 2 <<< $arg`
 		if $BEGIN; then
@@ -403,7 +417,7 @@ def versionarg(version):
 				FOUND_FLAG=true
 			fi
 		else
-			check_lists $first $second
+			check_lists $arg false
 		fi
 		# END =========================================================================================
 		
@@ -445,15 +459,13 @@ if $PRINT_HELP; then
 	echo "$HELP"
 	exit 0
 fi
-'''
-	if version != "":
-		result+='''if $PRINT_VERSION; then
+if $PRINT_VERSION; then
 	[[ -z $VERSION ]] && error "version string is empty"
 	echo $VERSION
 	exit 0
 fi
-'''
-	result+='''for w in $PARAMS; do set -- "$@" "$w"; done
+for req in $REQ_ARG_LIST; do [[ $GIVEN_REQ_ARG_LIST = *"$req"* ]] || error $req "argument is required"; done
+for w in $PARAMS; do set -- "$@" "$w"; done
 [[ $# -lt $NUM_POS_ARGS ]] && error "too few arguments"
 [[ $# -gt $NUM_POS_ARGS ]] && error "too many arguments"
 

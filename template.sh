@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v1.5.4
+#Bash Argument Parser (BAP) v1.5.5
 USAGE="usage: `basename $0`"
 PREUSAGE=${#USAGE}
 USAGE_LEN=0
@@ -10,6 +10,8 @@ HELP=""
 PARAMS=""
 FLAG_LIST=""
 LONG_FLAG_LIST=""
+REQ_ARG_LIST=""
+GIVEN_REQ_ARG_LIST=""
 SHIFT_NUM=1
 ADDED_FLAG_HELP=false
 ADDED_POSARG_HELP=false
@@ -19,7 +21,7 @@ PRINT_VERSION=false
 BEGIN=false
 
 # SCRIPT OPTIONS ================================================================================
-NUM_POS_ARGS=1 #editme
+NUM_POS_ARGS=0 #editme
 DESC="" #editme
 VERSION="" #editme
 # ===============================================================================================
@@ -33,17 +35,6 @@ function error {
 	[[ $# -eq 0 ]] && die "error"
 	[[ $# -eq 1 ]] && die "error: $1"
 	die "error: argument $1: $2"
-}
-function check_lists { 
-	[[ $# -ne 2 ]] && error "check_lists() requires 2 arguments"
-	if [[ ! $1 =~ ^-- ]]; then
-		[[ $FLAG_LIST = *"${1:1}"* ]] && error "duplicate flag $1"
-		FLAG_LIST="${1:1} $FLAG_LIST"
-	fi
-	if [[ ${2:0:2} = "--" ]]; then
-		[[ $LONG_FLAG_LIST = *"$2"* ]] && error "duplicate long flag $2"
-		LONG_FLAG_LIST="$2 $LONG_FLAG_LIST"
-	fi
 }
 function format_desc {
 	local descstring=$DESC
@@ -60,11 +51,25 @@ function format_desc {
 	done
 	echo "$DESC"
 }
+function check_lists { 
+	[[ $# -ne 2 ]] && error "check_lists() requires 2 arguments"
+	first=`cut -d / -f 1 <<< $1`
+	second=`cut -d / -f 2 <<< $1`
+	if [[ ! $first =~ ^-- ]]; then
+		[[ $FLAG_LIST = *"${first:1}"* ]] && error "duplicate flag $first"
+		FLAG_LIST="${first:1} $FLAG_LIST"
+	fi
+	if [[ $second =~ ^-- ]]; then
+		[[ $LONG_FLAG_LIST = *"$second"* ]] && error "duplicate long flag $second"
+		LONG_FLAG_LIST="$second $LONG_FLAG_LIST"
+	fi
+	if $2; then REQ_ARG_LIST="$1 $REQ_ARG_LIST"; fi
+}
 function add_help {
-	[[ -z $1 ]] && error "add_help() requires 3-4 arguments for flags, 2 arguments for positional arguments"
+	[[ -z $1 ]] && error "add_help() requires 4-5 arguments for flags, 2 arguments for positional arguments"
 	
 	if [[ ${1:0:1} = "-" ]]; then
-		[[ $# -lt 3 || $# -gt 4 ]] && error "add_help() requires 3-4 arguments for flags"
+		[[ $# -lt 4 || $# -gt 5 ]] && error "add_help() requires 4-5 arguments for flags"
 		$ADDED_FLAG_HELP || HELP=$(printf "$HELP\noptional arguments:")
 		ADDED_FLAG_HELP=true
 		
@@ -73,23 +78,24 @@ function add_help {
 		local second=`cut -d / -f 2 <<< $1`
 		local index=2
 		
-		local usagestr="[$first"
+		$3 || local usagestr="["
+		local usagestr="$usagestr$first"
 		[[ $first = $second && ! $first =~ ^-- ]] && local index=1
 		if [[ $2 -ne 0 ]]; then
 			for i in $(eval echo "{1..$2}"); do
-				if [[ -z $4 ]]; then
+				if [[ -z $5 ]]; then
 					local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
 					local usagestr="$usagestr `tr [a-z] [A-Z] <<< ${second:$index}`"
 					[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i") && local usagestr="$usagestr$i"
 				else
-					local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $4`")
-					local usagestr="$usagestr `cut -d , -f $i <<< $4`"
+					local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $5`")
+					local usagestr="$usagestr `cut -d , -f $i <<< $5`"
 				fi
 			done
 		fi
 		local helpstr=$(printf "$helpstr:\n\t")
 		HELP_LEN=0
-		for word in $3; do
+		for word in $4; do
 			local num=${#word}
 			if (( $HELP_LEN + $num + 4 <= $LINE_CAP )); then
 				if (( $HELP_LEN == 0 )); then
@@ -104,7 +110,7 @@ function add_help {
 				HELP_LEN=$num
 			fi
 		done
-		local usagestr="$usagestr]"
+		$3 || local usagestr="$usagestr]"
 	else
 		[[ $# -ne 2 ]] && error "add_help() requires 2 arguments for positional arguments"
 		$ADDED_POSARG_HELP || HELP=$(printf "$HELP\npositional arguments:")
@@ -182,6 +188,7 @@ if $PRINT_VERSION; then
 	echo $VERSION
 	exit 0
 fi
+for req in $REQ_ARG_LIST; do [[ $GIVEN_REQ_ARG_LIST = *"$req"* ]] || error $req "argument is required"; done
 for w in $PARAMS; do set -- "$@" "$w"; done
 [[ $# -lt $NUM_POS_ARGS ]] && error "too few arguments"
 [[ $# -gt $NUM_POS_ARGS ]] && error "too many arguments"
