@@ -16,6 +16,7 @@ denoted by long one-line comments surrounding an area. For example, this will be
 # SCRIPT OPTIONS ================================================================================
 NUM_POS_ARGS=1
 DESC=""
+VERSION=""
 # ===============================================================================================
 ```
 To add a description to your script and change the number of required positional arguments, just change these variables! 
@@ -30,7 +31,9 @@ arguments (or flags). In these, you will only have to edit the lines ending in a
 * First Line (`arg`): Edit the name of the flag. This can be a short flag (e.g. `-a`), a long flag (e.g. `num`), or both (e.g. `-s/--str`).
 * Second line (`nargs`): The number of values this argument takes. For example, I may have a `--minmax` flag that asks for two values: the min, and the max. 
 **NOTE:** This line is not present for boolean flags, as `nargs` is zero by default!
-* Third line (help message): Edit the string to explain the meaning of the given argument for the user running your script. 
+* Third line (`required`): This is an option to make the flag *required* rather than leave it optional. This will be reflected in the usage message
+as an omission of the square brackets around the flag.
+* Fourth line (help message): Edit the string to explain the meaning of the given argument for the user running your script. 
 (An optional fourth argument can be given to overwrite the 'metavar' of the values, but more on that and the help message in the 'Functions' section.)
 * Last line (getting `argval`): Lastly, you need to use the output (`argval`) however you please. For example, you can create a variable `num` in the 'Script Variables' code block at the beginning of the script and then store `argval` into `num` to have access to it after the parsing is complete.
 
@@ -48,8 +51,8 @@ You can provide the description and number of arguments for your program using t
 program, for example, you must provide a comma-separated list of the flag names. You could run something like `./setup.py --int-flags="-n/--num,--minmax"` 
 and it would create everything necessary for your program to have an integer flag that uses `-n/--num` and another that uses `--minmax`.
 The script also has the `--add-help` flag, which will add a `-h/--help` flag into your program that will print an automatically generated 
-usage and help message. Again, this will be explained more in detail in 'Functions'. Lastly, just provide a name for the output file for the `progname`
-positional argument, and the file will be created for you.
+usage and help message. Again, this will be explained more in detail in 'Functions'. Similarly, there is an `add-version` flag that will add the `--version` 
+flag into your program. Lastly, just provide a name for the output file for the `progname` positional argument, and the file will be created for you.
 
 All that's left is going into the program the script has created and editing the lines, where appropriate, labeled with the comment `#editme`. (I search through
 my file for instances of `editme` and edit where I'd like.) Then you're all set!
@@ -69,7 +72,8 @@ There are several functions that are in the script that will make your job makin
   * ...2 arguments, the message 'error:' is printed followed by the name of the flag (the first argument passed into the function) and the 
   error message (the second argument passed into the function). Usage: `error $arg "Error message"`.
 
-* `add_help`: Use this function to add an explanation to a given flag or positional argument. **NOTE:** Do not remove this line if you don't want to add 
+* `add_help`: (**OUTDATED, CHECK BACK SOON**)
+Use this function to add an explanation to a given flag or positional argument. **NOTE:** Do not remove this line if you don't want to add 
 a help message! This function also automatically generates the usage string. Just leave the line as is even if the help message is never used. 
 The function takes a variable number of arguments.
   * For optional arguments (flags), the usage is: `add_help $arg $nargs "Help message" "optional,metavar,list"`
