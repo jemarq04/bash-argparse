@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.0.0
+#Bash Argument Parser (BAP) v2.0.1
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -283,6 +283,8 @@ function bap_parse {
 					__BAP_FOUND_FLAG=true
 				fi
 			fi
+
+			# STRING FLAGS
 			for i in $(eval echo "{0..$(( ${#__BAP_SFLAGS[@]} - 1 ))}"); do
 				[[ ${#__BAP_SFLAGS[@]} -eq 0 ]] && break
 				local arg=${__BAP_SFLAGS[$i]}
@@ -291,7 +293,7 @@ function bap_parse {
 				local argval=()
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ ! $second = $first && $1 =~ ^$second ]]; then
+				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ $1 =~ ^$second ]]; then
 					if [[ $nargs -eq 1 ]]; then
 						argval+=("`cut -d = -f 2 <<< $1`")
 						if [[ ${argval[0]} = $1 ]]; then
@@ -315,14 +317,14 @@ function bap_parse {
 					set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 					[[ ${argval[0]} = *"h"* && ! "`cut -d ${first:1} -f 1 <<< $1`" = *"h"* ]] && PRINT_HELP=false
 				fi
-				$required && [[ ${#argval[@]} -ne 0 ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
-				if [[ ${#argval[@]} -ne 0 ]]; then 
-					for j in $(eval echo "{0..$(( $nargs - 1 ))}"); do
-						__save_sflag $arg $j "${argval[$j]}"
-					done
-				fi
+				[[ ${#argval[@]} -eq 0 ]] && continue
+				$required && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				for j in $(eval echo "{0..$(( $nargs - 1 ))}"); do
+					__save_sflag $arg $j "${argval[$j]}"
+				done
 			done
 
+			# INT FLAGS
 			for i in $(eval echo "{0..$(( ${#__BAP_IFLAGS[@]} - 1 ))}"); do
 				[[ ${#__BAP_IFLAGS[@]} -eq 0 ]] && break
 				local arg=${__BAP_IFLAGS[$i]}
@@ -331,7 +333,7 @@ function bap_parse {
 				local argval=""
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ ! $second = $first && $1 =~ ^$second ]]; then
+				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ $1 =~ ^$second ]]; then
 					if [[ $nargs -eq 1 ]]; then
 						local argval=`cut -d = -f 2 <<< $1`
 						if [[ $argval = $1 ]]; then
@@ -358,10 +360,12 @@ function bap_parse {
 					__BAP_FOUND_FLAG=true
 					set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 				fi
-				$required && [[ ! -z $argval ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
-				[[ ! -z $argval ]] && __save_flag $arg "$argval"
+				[[ -z $argval ]] && continue
+				$required && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				__save_flag $arg "$argval"
 			done
 			
+			# FLOAT FLAGS
 			for i in $(eval echo "{0..$(( ${#__BAP_FFLAGS[@]} - 1 ))}"); do
 				[[ ${#__BAP_FFLAGS[@]} -eq 0 ]] && break
 				local arg=${__BAP_FFLAGS[$i]}
@@ -370,7 +374,7 @@ function bap_parse {
 				local argval=""
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ ! $second = $first && $1 =~ ^$second ]]; then
+				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ $1 =~ ^$second ]]; then
 					if [[ $nargs -eq 1 ]]; then
 						local argval=`cut -d = -f 2 <<< $1`
 						if [[ $argval = $1 ]]; then
@@ -397,10 +401,12 @@ function bap_parse {
 					__BAP_FOUND_FLAG=true
 					set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
 				fi
-				$required && [[ ! -z $argval ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
-				[[ ! -z $argval ]] && __save_flag $arg "$argval"
+				[[ -z $argval ]] && continue
+				$required && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				__save_flag $arg "$argval"
 			done
 			
+			# BOOL FLAGS
 			for i in $(eval echo "{0..$(( ${#__BAP_BFLAGS[@]} - 1 ))}"); do
 				[[ ${#__BAP_BFLAGS[@]} -eq 0 ]] && break
 				local arg=${__BAP_BFLAGS[$i]}
@@ -413,8 +419,9 @@ function bap_parse {
 					local argval=true
 					__BAP_FOUND_FLAG=true
 				fi
-				$required && [[ ! -z $argval ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
-				[[ ! -z $argval ]] && __save_flag $arg "$argval"
+				[[ -z $argval ]] && continue
+				$required && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				__save_flag $arg "$argval"
 			done
 			
 			[[ $__BAP_FOUND_FLAG = false ]] && bap_error "unrecognized argument: $1"
