@@ -53,8 +53,8 @@ function format_desc {
 }
 function check_lists { 
 	[[ $# -ne 2 ]] && error "check_lists() requires 2 arguments"
-	first=`cut -d / -f 1 <<< $1`
-	second=`cut -d / -f 2 <<< $1`
+	local first=`cut -d / -f 1 <<< $1`
+	local second=`cut -d / -f 2 <<< $1`
 	if [[ ! $first =~ ^-- ]]; then
 		[[ $FLAG_LIST = *"${first:1}"* ]] && error "duplicate flag $first"
 		FLAG_LIST="${first:1} $FLAG_LIST"
