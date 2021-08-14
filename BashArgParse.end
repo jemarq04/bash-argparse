@@ -1,0 +1,65 @@
+#!/bin/bash
+#Bash Argument Parser (BAP) v2.0.1
+unset __BAP_IFLAGS
+unset __BAP_FFLAGS
+unset __BAP_SFLAGS
+unset __BAP_BFLAGS
+unset __BAP_POSARGS
+unset __BAP_IFLAGS_REQ
+unset __BAP_FFLAGS_REQ
+unset __BAP_SFLAGS_REQ
+unset __BAP_IFLAGS_NUM
+unset __BAP_FFLAGS_NUM
+unset __BAP_SFLAGS_NUM
+unset __BAP_BFLAGS_NUM
+unset __BAP_ADD_HELP
+unset __BAP_ADD_VERSION
+unset __BAP_USAGE_LEN
+unset __BAP_DESC_LEN
+unset __BAP_HELP_LEN
+unset __BAP_HELP
+unset __BAP_PARAMS
+unset __BAP_FLAG_LIST
+unset __BAP_LONG_FLAG_LIST
+unset __BAP_REQ_ARG_LIST
+unset __BAP_GIVEN_REQ_ARG_LIST
+unset __BAP_SHIFT_NUM
+unset __BAP_ADDED_FLAG_HELP
+unset __BAP_ADDED_POSARG_HELP
+unset __BAP_FOUND_FLAG
+unset __BAP_PRINT_HELP
+unset __BAP_PRINT_VERSION
+unset __BAP_BEGIN
+
+# SCRIPT OPTIONS ================================================================================
+unset __BAP_NUM_POS_ARGS
+unset __BAP_DESC
+unset __BAP_VERSION
+unset __BAP_LINE_CAP
+unset __BAP_USAGE
+unset __BAP_PREUSAGE_LEN
+# ===============================================================================================
+
+unset -f  __die 
+unset -f  __check_lists 
+unset -f  __add_help 
+unset -f  __save_flag 
+unset -f  __save_sflag 
+unset -f  __save_posarg 
+
+# SCRIPT FUNCTIONS ==============================================================================
+unset -f  bap_error 
+unset -f  bap_set_name 
+unset -f  bap_set_desc 
+unset -f  bap_set_line_cap 
+unset -f  bap_add_help 
+unset -f  bap_add_version 
+unset -f  bap_add_iflag 
+unset -f  bap_add_fflag 
+unset -f  bap_add_sflag 
+unset -f  bap_add_bflag 
+unset -f  bap_add_posarg 
+unset -f  bap_parse 
+unset -f  bap_get 
+unset -f  bap_get_len 
+# ===============================================================================================
