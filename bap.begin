@@ -18,7 +18,6 @@ __BAP_ADD_VERSION=false
 __BAP_USAGE_LEN=0
 __BAP_DESC_LEN=0
 __BAP_HELP_LEN=0
-__BAP_LINE_CAP=50
 __BAP_HELP=""
 __BAP_PARAMS=()
 __BAP_FLAG_LIST=""
@@ -37,6 +36,7 @@ __BAP_BEGIN=false
 __BAP_NUM_POS_ARGS=0
 __BAP_DESC=""
 __BAP_VERSION=""
+__BAP_LINE_CAP=70
 
 __BAP_USAGE=""
 __BAP_PREUSAGE_LEN=0
@@ -201,6 +201,14 @@ function bap_set_desc {
 			(( __BAP_DESC_LEN += $num + 1 ))
 		fi
 	done
+}
+
+function bap_set_line_cap {
+	[[ -z $__BAP_USAGE ]] && bap_error "you must call \`bap_set_name \$0\` before adding arguments"
+	[[ $# -ne 1 ]] && bap_error "set_desc() requires 1 argument" 
+	[[ ! $1 =~ ^[0-9]+$ ]] && bap_error "invalid integer: '$1'"
+	[[ $1 -lt $__BAP_PREUSAGE_LEN ]] && bap_error "line cap must be greater than $__BAP_PREUSAGE_LEN"
+	__BAP_LINE_CAP=$1
 }
 
 function bap_add_help { 
