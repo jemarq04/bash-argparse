@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.0.1
+#Bash Argument Parser (BAP) v2.0.2
 unset __BAP_IFLAGS
 unset __BAP_FFLAGS
 unset __BAP_SFLAGS
@@ -30,6 +30,8 @@ unset __BAP_FOUND_FLAG
 unset __BAP_PRINT_HELP
 unset __BAP_PRINT_VERSION
 unset __BAP_BEGIN
+for arg in $__BAP_SAVED_ARGS; do unset $arg; done
+unset __BAP_SAVED_ARGS
 
 # SCRIPT OPTIONS ================================================================================
 unset __BAP_NUM_POS_ARGS

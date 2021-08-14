@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.0.1
+#Bash Argument Parser (BAP) v2.0.2
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -31,6 +31,8 @@ __BAP_FOUND_FLAG=false
 __BAP_PRINT_HELP=false
 __BAP_PRINT_VERSION=false
 __BAP_BEGIN=false
+
+__BAP_SAVED_ARGS=""
 
 # SCRIPT OPTIONS ================================================================================
 __BAP_NUM_POS_ARGS=0
@@ -153,6 +155,7 @@ function __save_flag { # save_flag $arg $argval
 	local name=`tr [a-z] [A-z] <<< ${second:$index}`
 	local name=`tr - _ <<< $name`
 	printf -v "__BAP_ARG_$name" "%s" "$2"
+	__BAP_SAVED_ARGS="${__BAP_SAVED_ARGS}__BAP_ARG_$name "
 }
 
 function __save_sflag { # save_sflag $arg $index $argval
@@ -166,6 +169,8 @@ function __save_sflag { # save_sflag $arg $index $argval
 
 	printf -v "__BAP_ARG_${name}_$2" "%s" "$3"
 	printf -v "__BAP_ARG_NUM_$name" "%i" $(( $2 + 1 ))
+	
+	__BAP_SAVED_ARGS="${__BAP_SAVED_ARGS}__BAP_ARG_NUM_$name __BAP_ARG_${name}_$2 "
 }
 
 function __save_posarg { # save_posarg $arg $argval
@@ -173,6 +178,7 @@ function __save_posarg { # save_posarg $arg $argval
 	local name=`tr - _ <<< $name`
 
 	printf -v "__BAP_POSARG_$name" "%s" "$2"
+	__BAP_SAVED_ARGS="${__BAP_SAVED_ARGS}__BAP_POSARG_$name "
 }
 # SCRIPT FUNCTIONS ==============================================================================
 function bap_error {
