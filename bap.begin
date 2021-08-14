@@ -1,0 +1,504 @@
+#!/bin/bash
+#Bash Argument Parser (BAP) v2.0.0
+__BAP_IFLAGS=()
+__BAP_FFLAGS=()
+__BAP_SFLAGS=()
+__BAP_BFLAGS=()
+__BAP_POSARGS=()
+__BAP_IFLAGS_REQ=()
+__BAP_FFLAGS_REQ=()
+__BAP_SFLAGS_REQ=()
+__BAP_IFLAGS_NUM=()
+__BAP_FFLAGS_NUM=()
+__BAP_SFLAGS_NUM=()
+__BAP_BFLAGS_NUM=()
+__BAP_ADD_HELP=false
+__BAP_ADD_VERSION=false
+
+__BAP_USAGE_LEN=0
+__BAP_DESC_LEN=0
+__BAP_HELP_LEN=0
+__BAP_LINE_CAP=50
+__BAP_HELP=""
+__BAP_PARAMS=()
+__BAP_FLAG_LIST=""
+__BAP_LONG_FLAG_LIST=""
+__BAP_REQ_ARG_LIST=""
+__BAP_GIVEN_REQ_ARG_LIST=""
+__BAP_SHIFT_NUM=1
+__BAP_ADDED_FLAG_HELP=false
+__BAP_ADDED_POSARG_HELP=false
+__BAP_FOUND_FLAG=false
+__BAP_PRINT_HELP=false
+__BAP_PRINT_VERSION=false
+__BAP_BEGIN=false
+
+# SCRIPT OPTIONS ================================================================================
+__BAP_NUM_POS_ARGS=0
+__BAP_DESC=""
+__BAP_VERSION=""
+
+__BAP_USAGE=""
+__BAP_PREUSAGE_LEN=0
+# ===============================================================================================
+
+function __die { echo "$__BAP_USAGE"; echo $@ >&2; exit 1; }
+function __check_lists { 
+	[[ $# -ne 2 ]] && __die "error: __check_lists() requires 2 arguments"
+	local first=`cut -d / -f 1 <<< $1`
+	local second=`cut -d / -f 2 <<< $1`
+	if [[ ! $first =~ ^-- ]]; then
+		[[ $__BAP_FLAG_LIST = *"${first:1}"* ]] && __die "error: duplicate flag $first"
+		__BAP_FLAG_LIST="${first:1} $__BAP_FLAG_LIST"
+	fi
+	if [[ $second =~ ^-- ]]; then
+		[[ $__BAP_LONG_FLAG_LIST = *"$second"* ]] && __die "error: duplicate long flag $second"
+		__BAP_LONG_FLAG_LIST="$second $__BAP_LONG_FLAG_LIST"
+	fi
+	if $2; then __BAP_REQ_ARG_LIST="$1 $__BAP_REQ_ARG_LIST"; fi
+}
+function __add_help {
+	[[ -z $1 ]] && __die "error: __add_help() requires 4-5 arguments for flags, 2 arguments for positional arguments"
+	[[ -z $__BAP_USAGE ]] && __die "error: you must call \`bap_set_name \$0\` before adding arguments"
+	
+	if [[ ${1:0:1} = "-" ]]; then
+		[[ $# -lt 4 || $# -gt 5 ]] && __die "error: __add_help() requires 4-5 arguments for flags (got $#)"
+		$__BAP_ADDED_FLAG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\noptional arguments:")
+		__BAP_ADDED_FLAG_HELP=true
+		
+		local helpstr=$(printf "\n  $1")
+		local first=`cut -d / -f 1 <<< $1`
+		local second=`cut -d / -f 2 <<< $1`
+		local index=2
+		
+		$3 || local usagestr="["
+		local usagestr="$usagestr$first"
+		[[ $first = $second && ! $first =~ ^-- ]] && local index=1
+		if [[ $2 -ne 0 ]]; then
+			for i in $(eval echo "{1..$2}"); do
+				if [[ -z $5 ]]; then
+					local helpstr=$(printf "$helpstr `tr [a-z] [A-Z] <<< ${second:$index}`")
+					local usagestr="$usagestr `tr [a-z] [A-Z] <<< ${second:$index}`"
+					[[ $2 -ne 1 ]] && local helpstr=$(printf "$helpstr$i") && local usagestr="$usagestr$i"
+				else
+					local helpstr=$(printf "$helpstr `cut -d , -f $i <<< $5`")
+					local usagestr="$usagestr `cut -d , -f $i <<< $5`"
+				fi
+			done
+		fi
+		local helpstr=$(printf "$helpstr:\n\t")
+		__BAP_HELP_LEN=0
+		for word in $4; do
+			local num=${#word}
+			if (( $__BAP_HELP_LEN + $num + 4 <= $__BAP_LINE_CAP )); then
+				if (( $__BAP_HELP_LEN == 0 )); then
+					local helpstr=$(printf "$helpstr$word")
+					__BAP_HELP_LEN=$num
+				else
+					local helpstr=$(printf "$helpstr $word")
+					(( __BAP_HELP_LEN += $num + 1 ))
+				fi
+			else
+				local helpstr=$(printf "$helpstr\n\t$word")
+				__BAP_HELP_LEN=$num
+			fi
+		done
+		$3 || local usagestr="$usagestr]"
+	else
+		[[ $# -ne 2 ]] && __die "error: add_help() requires 2 arguments for positional arguments"
+		$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
+		__BAP_ADDED_POSARG_HELP=true
+
+		local helpstr=$(printf "\n  $1:\n\t")
+		__BAP_HELP_LEN=0
+		for word in $2; do
+			local num=${#word}
+			if (( $__BAP_HELP_LEN + $num + 8 <= $__BAP_LINE_CAP )); then
+				if (( $__BAP_HELP_LEN == 0 )); then
+					local helpstr=$(printf "$helpstr$word")
+					__BAP_HELP_LEN=$num
+				else
+					local helpstr=$(printf "$helpstr $word")
+					(( __BAP_HELP_LEN = $num + 1 ))
+				fi
+			else
+				local helpstr=$(printf "$helpstr\n\t$word")
+				__BAP_HELP_LEN=$num
+			fi
+		done
+		local usagestr=$1
+	fi
+	
+	__BAP_HELP=$(printf "$__BAP_HELP$helpstr")
+	local num=$(( ${#usagestr} + 1 ))
+	if (( $__BAP_PREUSAGE_LEN + $__BAP_USAGE_LEN + $num <= $__BAP_LINE_CAP || $__BAP_USAGE_LEN == 0 )); then
+		(( __BAP_USAGE_LEN += $num ))
+		__BAP_USAGE=$(printf "$__BAP_USAGE $usagestr")
+	else
+		__BAP_USAGE=$(printf "$__BAP_USAGE\\\n")
+		for i in $(eval echo "{1..${__BAP_PREUSAGE_LEN}}"); do
+			__BAP_USAGE=$(printf "$__BAP_USAGE ")
+		done
+		__BAP_USAGE=$(printf "$__BAP_USAGE $usagestr")
+		__BAP_USAGE_LEN=$num
+	fi
+}
+
+function __save_flag { # save_flag $arg $argval
+	[[ $# -ne 2 ]] && __die "error: save_flag() requires 2 arguments"
+	local first=`cut -d / -f 1 <<< $1`
+	local second=`cut -d / -f 2 <<< $1`
+	local index=2
+	[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+	local name=`tr [a-z] [A-z] <<< ${second:$index}`
+	local name=`tr - _ <<< $name`
+	printf -v "__BAP_ARG_$name" "%s" "$2"
+}
+
+function __save_sflag { # save_sflag $arg $index $argval
+	[[ $# -ne 3 ]] && __die "error: save_sflag() requires 3 arguments"
+	local first=`cut -d / -f 1 <<< $1`
+	local second=`cut -d / -f 2 <<< $1`
+	local index=2
+	[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+	local name=`tr [a-z] [A-z] <<< ${second:$index}`
+	local name=`tr - _ <<< $name`
+
+	printf -v "__BAP_ARG_${name}_$2" "%s" "$3"
+	printf -v "__BAP_ARG_NUM_$name" "%i" $(( $2 + 1 ))
+}
+
+function __save_posarg { # save_posarg $arg $argval
+	local name=`tr [a-z] [A-Z] <<< $1`
+	local name=`tr - _ <<< $name`
+
+	printf -v "__BAP_POSARG_$name" "%s" "$2"
+}
+# SCRIPT FUNCTIONS ==============================================================================
+function bap_error {
+	[[ $# -eq 0 ]] && __die "error"
+	[[ $# -eq 1 ]] && __die "error: $1"
+	__die "error: argument $1: $2"
+}
+
+function bap_set_name {
+	[[ $# -ne 1 ]] && bap_error "set_name() requires 1 argument"
+	__BAP_USAGE="usage: `basename $1`"
+	__BAP_PREUSAGE_LEN=${#__BAP_USAGE}
+}
+
+function bap_set_desc {
+	[[ $# -ne 1 ]] && bap_error "set_desc() requires 1 argument" 
+	local descstring=$1
+	__BAP_DESC=""
+	for word in $descstring; do
+		local num=${#word}
+		if (( $__BAP_DESC_LEN + $num + 1 > $__BAP_LINE_CAP || $__BAP_DESC_LEN == 0 )); then
+			__BAP_DESC=$(printf "$__BAP_DESC\n$word")
+			(( __BAP_DESC_LEN = $num ))
+		else
+			__BAP_DESC=$(printf "$__BAP_DESC $word")
+			(( __BAP_DESC_LEN += $num + 1 ))
+		fi
+	done
+}
+
+function bap_add_help { 
+	__BAP_ADD_HELP=true
+	__check_lists "-h/--help" false
+	__add_help "-h/--help" 0 false "print this help message and exit"
+}
+
+function bap_add_version { 
+	[[ $# -ne 1 ]] && bap_error "add_version() requires 1 argument"
+	__BAP_ADD_VERSION=true
+	__check_lists "--version" false
+	__add_help "--version" 0 false "print the version and exit"
+	__BAP_VERSION="$1"
+}
+
+function bap_add_iflag { # add_iflag $arg $nargs $required $help_message [$metavar]
+	[[ $# -lt 4 ]] && bap_error "add_iflag() requires at least 4 arguments"
+	[[ $# -gt 5 ]] && bap_error "add_iflag() requires no more than 5 arguments"
+	__check_lists $1 $3
+	__add_help "$@"
+	__BAP_IFLAGS+=($1)
+	__BAP_IFLAGS_NUM+=($2)
+	__BAP_IFLAGS_REQ+=($3)
+}
+
+function bap_add_fflag {
+	[[ $# -lt 4 ]] && bap_error "add_fflag() requires at least 4 arguments"
+	[[ $# -gt 5 ]] && bap_error "add_fflag() requires no more than 5 arguments"
+	__check_lists $1 $3
+	__add_help "$@"
+	__BAP_FFLAGS+=($1)
+	__BAP_FFLAGS_NUM+=($2)
+	__BAP_FFLAGS_REQ+=($3)
+}
+
+function bap_add_sflag {
+	[[ $# -lt 4 ]] && bap_error "add_sflag() requires at least 4 arguments"
+	[[ $# -gt 5 ]] && bap_error "add_sflag() requires no more than 5 arguments"
+	__check_lists $1 $3
+	__add_help "$@"
+	__BAP_SFLAGS+=($1)
+	__BAP_SFLAGS_NUM+=($2)
+	__BAP_SFLAGS_REQ+=($3)
+}
+
+function bap_add_bflag { # add_bflag $arg $required $help_message
+	[[ $# -ne 3 ]] && bap_error "add_bflag() requires 3 arguments"
+	__check_lists $1 $2
+	__add_help $1 0 $2 "$3"
+	__BAP_BFLAGS+=($1)
+	__BAP_BFLAGS_REQ+=($2)
+}
+
+function bap_add_posarg { # add_posarg $arg $help_message
+	[[ $# -ne 2 ]] && bap_error "add_posarg() requires 2 arguments"
+	(( __BAP_NUM_POS_ARGS++ ))
+	__add_help "$@"
+	__BAP_POSARGS+=($1)
+}
+
+function bap_parse {
+	while (( "$#" )); do
+		if [[ $1 =~ ^- ]]; then
+			if $__BAP_ADD_HELP; then
+				local arg="-h/--help"
+				local first=`cut -d / -f 1 <<< $arg`
+				local second=`cut -d / -f 2 <<< $arg`
+				if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+					__BAP_PRINT_HELP=true
+					__BAP_FOUND_FLAG=true
+				fi
+			fi
+			if $__BAP_ADD_VERSION; then
+				local arg="--version"
+				local first=`cut -d / -f 1 <<< $arg`
+				local second=`cut -d / -f 2 <<< $arg`
+				if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+					__BAP_PRINT_VERSION=true
+					__BAP_FOUND_FLAG=true
+				fi
+			fi
+			for i in $(eval echo "{0..$(( ${#__BAP_SFLAGS[@]} - 1 ))}"); do
+				[[ ${#__BAP_SFLAGS[@]} -eq 0 ]] && break
+				local arg=${__BAP_SFLAGS[$i]}
+				local nargs=${__BAP_SFLAGS_NUM[$i]}
+				local required=${__BAP_SFLAGS_REQ[$i]}
+				local argval=()
+				local first=`cut -d / -f 1 <<< $arg`
+				local second=`cut -d / -f 2 <<< $arg`
+				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ ! $second = $first && $1 =~ ^$second ]]; then
+					if [[ $nargs -eq 1 ]]; then
+						argval+=("`cut -d = -f 2 <<< $1`")
+						if [[ ${argval[0]} = $1 ]]; then
+							[[ -z $2 ]] && bap_error $arg "expected one argument"
+							__BAP_SHIFT_NUM=2
+							argval[0]=$2
+						fi
+					else
+						(( end = $nargs + 1 ))
+						for i in $(eval echo "{2..$end}"); do
+							[[ -z ${@:$i:1} ]] && bap_error $arg "expected $nargs arguments"
+							argval+=("${@:$i:1}")
+						done
+						(( __BAP_SHIFT_NUM = $nargs + 1 ))
+					fi
+					__BAP_FOUND_FLAG=true
+				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
+					[[ $nargs -ne 1 ]] && bap_error $arg "expected $nargs arguments"
+					argval+=("`cut -d ${first:1} -f 2- <<< $1`")
+					__BAP_FOUND_FLAG=true
+					set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
+					[[ ${argval[0]} = *"h"* && ! "`cut -d ${first:1} -f 1 <<< $1`" = *"h"* ]] && PRINT_HELP=false
+				fi
+				$required && [[ ${#argval[@]} -ne 0 ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				if [[ ${#argval[@]} -ne 0 ]]; then 
+					for j in $(eval echo "{0..$(( $nargs - 1 ))}"); do
+						__save_sflag $arg $j "${argval[$j]}"
+					done
+				fi
+			done
+
+			for i in $(eval echo "{0..$(( ${#__BAP_IFLAGS[@]} - 1 ))}"); do
+				[[ ${#__BAP_IFLAGS[@]} -eq 0 ]] && break
+				local arg=${__BAP_IFLAGS[$i]}
+				local nargs=${__BAP_IFLAGS_NUM[$i]}
+				local required=${__BAP_IFLAGS_REQ[$i]}
+				local argval=""
+				local first=`cut -d / -f 1 <<< $arg`
+				local second=`cut -d / -f 2 <<< $arg`
+				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ ! $second = $first && $1 =~ ^$second ]]; then
+					if [[ $nargs -eq 1 ]]; then
+						local argval=`cut -d = -f 2 <<< $1`
+						if [[ $argval = $1 ]]; then
+							[ -z $2 ] && error $arg "expected one argument"
+							__BAP_SHIFT_NUM=2
+							local argval=$2
+						fi
+						[[ ! $argval =~ ^[0-9]+$ ]] && bap_error $arg "invalid integer: '$argval'"
+					else
+						local end=0
+						(( end = $nargs + 1 ))
+						for i in $(eval echo "{2..$end}"); do
+							[[ -z ${@:$i:1} ]] && bap_error $arg "expected $nargs arguments"
+							[[ ! ${@:$i:1} =~ ^[0-9]+$ ]] && bap_error $arg "invalid integer: '${@:$i:1}'"
+							[[ -z $argval ]] && local argval="${@:$i:1}" || local argval="$argval ${@:$i:1}"
+						done
+						(( __BAP_SHIFT_NUM = $nargs + 1 ))
+					fi
+					__BAP_FOUND_FLAG=true
+				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
+					[[ $nargs -ne 1 ]] && bap_error $arg "expected $nargs arguments"
+					local argval=`cut -d ${first:1} -f 2 <<< $1`
+					[[ ! $argval =~ ^[0-9]+$ ]] && bap_error $arg "invalid integer: '$argval'"
+					__BAP_FOUND_FLAG=true
+					set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
+				fi
+				$required && [[ ! -z $argval ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				[[ ! -z $argval ]] && __save_flag $arg "$argval"
+			done
+			
+			for i in $(eval echo "{0..$(( ${#__BAP_FFLAGS[@]} - 1 ))}"); do
+				[[ ${#__BAP_FFLAGS[@]} -eq 0 ]] && break
+				local arg=${__BAP_FFLAGS[$i]}
+				local nargs=${__BAP_FFLAGS_NUM[$i]}
+				local required=${__BAP_FFLAGS_REQ[$i]}
+				local argval=""
+				local first=`cut -d / -f 1 <<< $arg`
+				local second=`cut -d / -f 2 <<< $arg`
+				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ ! $second = $first && $1 =~ ^$second ]]; then
+					if [[ $nargs -eq 1 ]]; then
+						local argval=`cut -d = -f 2 <<< $1`
+						if [[ $argval = $1 ]]; then
+							[ -z $2 ] && bap_error $arg "expected one argument"
+							__BAP_SHIFT_NUM=2
+							local argval=$2
+						fi
+						[[ ! $argval =~ ^[0-9]+([.][0-9]+)?$ ]] && bap_error $arg "invalid float: '$argval'"
+					else
+						local end=0
+						(( end = $nargs + 1 ))
+						for i in $(eval echo "{2..$end}"); do
+							[[ -z ${@:$i:1} ]] && bap_error $arg "expected $nargs arguments"
+							[[ ! ${@:$i:1} =~ ^[0-9]+([.][0-9]+)?$ ]] && bap_error $arg "invalid float: '${@:$i:1}'"
+							[[ -z $argval ]] && local argval="${@:$i:1}" || local argval="$argval ${@:$i:1}"
+						done
+						(( __BAP_SHIFT_NUM = $nargs + 1 ))
+					fi
+					__BAP_FOUND_FLAG=true
+				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
+					[[ $nargs -ne 1 ]] && bap_error $arg "expected $nargs arguments"
+					local argval=`cut -d ${first:1} -f 2 <<< $1`
+					[[ ! $argval =~ ^[0-9]+([.][0-9]+)?$ ]] && bap_error $arg "invalid float: '$argval'"
+					__BAP_FOUND_FLAG=true
+					set -- "`cut -d ${first:1} -f 1 <<< $1`${first:1}" "${@:2}"
+				fi
+				$required && [[ ! -z $argval ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				[[ ! -z $argval ]] && __save_flag $arg "$argval"
+			done
+			
+			for i in $(eval echo "{0..$(( ${#__BAP_BFLAGS[@]} - 1 ))}"); do
+				[[ ${#__BAP_BFLAGS[@]} -eq 0 ]] && break
+				local arg=${__BAP_BFLAGS[$i]}
+				local nargs=${__BAP_BFLAGS_NUM[$i]}
+				local required=${__BAP_BFLAGS_REQ[$i]}
+				local argval=""
+				local first=`cut -d / -f 1 <<< $arg`
+				local second=`cut -d / -f 2 <<< $arg`
+				if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+					local argval=true
+					__BAP_FOUND_FLAG=true
+				fi
+				$required && [[ ! -z $argval ]] && __BAP_GIVEN_REQ_ARG_LIST="$arg $__BAP_GIVEN_REQ_ARG_LIST"
+				[[ ! -z $argval ]] && __save_flag $arg "$argval"
+			done
+			
+			[[ $__BAP_FOUND_FLAG = false ]] && bap_error "unrecognized argument: $1"
+			if [[ ${1:0:1} = "-" && ! ${1:0:2} = "--" ]]; then
+				while read -n 1 char; do
+					[ -z $char ] && continue
+					local found_char=false
+					for w in $__BAP_FLAG_LIST; do [ $w = $char ] && local found_char=true; done
+					[[ $found_char = false ]] && bap_error "unrecognized arguments: $1"
+				done <<< ${1:1}
+			fi
+		else __BAP_PARAMS+=("$1"); fi
+
+		shift $__BAP_SHIFT_NUM
+		__BAP_SHIFT_NUM=1
+		__BAP_FOUND_FLAG=false
+	done
+	if $__BAP_PRINT_HELP; then
+		echo "$__BAP_USAGE"
+		[[ ! -z $__BAP_DESC ]] && echo "$__BAP_DESC"
+		echo "$__BAP_HELP"
+		exit 0
+	fi
+	if $__BAP_PRINT_VERSION; then
+		[[ -z $__BAP_VERSION ]] && bap_error "version string is empty"
+		echo $__BAP_VERSION
+		exit 0
+	fi
+	for req in $__BAP_REQ_ARG_LIST; do [[ $__BAP_GIVEN_REQ_ARG_LIST = *"$req"* ]] || bap_error $req "argument is required"; done
+	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_POS_ARGS ]] && bap_error "too few arguments"
+	[[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POS_ARGS ]] && bap_error "too many arguments"
+	for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do __save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"; done
+}
+
+function bap_get {
+	[[ $# -lt 1 ]] && bap_error "get() requires at least 1 argument"
+	local arg="${1%\"}"
+	local arg="${arg#\"}"
+	if [[ $arg =~ ^- ]]; then
+		local first=`cut -d / -f 1 <<< $arg`
+		local second=`cut -d / -f 2 <<< $arg`
+		local index=2
+		[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+		local name=`tr [a-z] [A-z] <<< ${second:$index}`
+		local name=`tr - _ <<< $name`
+	
+		local argname="__BAP_ARG_$name"
+		local numname="__BAP_ARG_NUM_$name"
+		local num=$2
+		[[ ! -z "${!numname}" ]] && [[ $# -ne 2 ]] && local num=0
+		local argname_str="${argname}_$num"
+		[[ -z "${!numname}" ]] && echo "${!argname}" || echo "${!argname_str}"
+	else
+		local name=`tr [a-z] [A-Z] <<< $arg`
+		local name=`tr - _ <<< $name`
+
+		local argname="__BAP_POSARG_$name"
+		echo "${!argname}"
+	fi
+}
+
+function bap_get_len {
+	[[ $# -ne 1 ]] && bap_error "get_len() requires 1 argument"
+	local arg="${1%\"}"
+	local arg="${arg#\"}"
+	if [[ $arg =~ ^- ]]; then
+		local first=`cut -d / -f 1 <<< $arg`
+		local second=`cut -d / -f 2 <<< $arg`
+		local index=2
+		[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+		local name=`tr [a-z] [A-z] <<< ${second:$index}`
+		local name=`tr - _ <<< $name`
+		
+		local argname="__BAP_ARG_$name"
+		local numname="__BAP_ARG_NUM_${name}"
+		if [[ ! -z "${!numname}" ]]; then 
+			echo "${!numname}"
+		elif [[ -z ${!argname} ]]; then 
+			echo 0
+		else
+			echo 1
+		fi
+	else 
+		echo 1
+	fi
+}
+# ===============================================================================================
