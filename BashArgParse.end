@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.0.2
+#Bash Argument Parser (BAP) v2.0.3
 unset __BAP_IFLAGS
 unset __BAP_FFLAGS
 unset __BAP_SFLAGS
