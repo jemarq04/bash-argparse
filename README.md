@@ -1,17 +1,18 @@
 # Bash Argument Parser (BAP)
 
 This repository contains the script necessary to implement argument parsing in your bash script. All that needs to be done is to move `BashArgParse` into
-your `PATH` and add `source BashArgParse` at the beginning of your bash script.
+your `PATH` and add `source BashArgParse` at the beginning of your bash script. If need be, `BashArgParse.end` is provided to clean up the variables 
+and functions defined in `BashArgParse`. (For example, if you define a *function* that sources `BashArgParse`, then you would need to `unset` the variables
+and functions that were defined. So you would add `source BashArgParse.end` at the end of your function.)
 
 ## Using BAP
 
 After sourcing `BashArgParse`, the next step is to set the name of the program by adding `bap_set_name $0`. After that, add as many flags
 and positional arguments as you see fit. Finally, add `bap_parse "$@"` to parse the command-line arguments provided.
 
-To retrieve the values of the optional/positional arguments, use `bap_get` and `bap_get_len` as needed. To see how to use all of the functions 
-at your disposal, read the following section.
-
-To throw an error and print a message with the required usage for your script, use the `bap_error` function.
+To retrieve the values of the optional/positional arguments, use `bap_get` and `bap_get_len` as needed. 
+To throw an error and print a message with the required usage for your script, use the `bap_error` function. 
+To see how to use all of the functions at your disposal, read the following section.
 
 ## Function Documentation
 
