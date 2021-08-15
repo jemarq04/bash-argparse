@@ -36,6 +36,7 @@ __BAP_SAVED_ARGS=""
 
 # SCRIPT OPTIONS ================================================================================
 __BAP_NUM_POS_ARGS=0
+__BAP_NUM_REQ_POS_ARGS=0
 __BAP_DESC=""
 __BAP_VERSION=""
 __BAP_LINE_CAP=70
@@ -60,7 +61,7 @@ function __check_lists {
 	if $2; then __BAP_REQ_ARG_LIST="$1 $__BAP_REQ_ARG_LIST"; fi
 }
 function __add_help {
-	[[ -z $1 ]] && __die "error: __add_help() requires 4-5 arguments for flags, 2 arguments for positional arguments"
+	[[ -z $1 ]] && __die "error: __add_help() requires 4-5 arguments for flags, 3 arguments for positional arguments"
 	[[ -z $__BAP_USAGE ]] && __die "error: you must call \`bap_set_name \$0\` before adding arguments"
 	
 	if [[ ${1:0:1} = "-" ]]; then
@@ -107,13 +108,16 @@ function __add_help {
 		done
 		$3 || local usagestr="$usagestr]"
 	else
-		[[ $# -ne 2 ]] && __die "error: add_help() requires 2 arguments for positional arguments"
+		[[ $# -ne 3 ]] && __die "error: add_help() requires 3 arguments for positional arguments"
+		if [[ $__BAP_NUM_POS_ARGS -ne $__BAP_NUM_REQ_POS_ARGS && $2 = true ]]; then
+			__die "error: required positional arguments cannot follow after optional positional arguments"
+		fi
 		$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
 		__BAP_ADDED_POSARG_HELP=true
 
 		local helpstr=$(printf "\n  $1:\n\t")
 		__BAP_HELP_LEN=0
-		for word in $2; do
+		for word in $3; do
 			local num=${#word}
 			if (( $__BAP_HELP_LEN + $num + 8 <= $__BAP_LINE_CAP )); then
 				if (( $__BAP_HELP_LEN == 0 )); then
@@ -128,7 +132,8 @@ function __add_help {
 				__BAP_HELP_LEN=$num
 			fi
 		done
-		local usagestr=$1
+
+		$2 && local usagestr=$1 || local usagestr="[$1]"
 	fi
 	
 	__BAP_HELP=$(printf "$__BAP_HELP$helpstr")
@@ -270,8 +275,9 @@ function bap_add_bflag { # add_bflag $arg $required $help_message
 }
 
 function bap_add_posarg { # add_posarg $arg $help_message
-	[[ $# -ne 2 ]] && bap_error "add_posarg() requires 2 arguments"
+	[[ $# -ne 3 ]] && bap_error "add_posarg() requires 3 arguments"
 	(( __BAP_NUM_POS_ARGS++ ))
+	$2 && (( __BAP_NUM_REQ_POS_ARGS++ ))
 	__add_help "$@"
 	__BAP_POSARGS+=($1)
 }
@@ -465,7 +471,7 @@ function bap_parse {
 		exit 0
 	fi
 	for req in $__BAP_REQ_ARG_LIST; do [[ $__BAP_GIVEN_REQ_ARG_LIST = *"$req"* ]] || bap_error $req "argument is required"; done
-	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_POS_ARGS ]] && bap_error "too few arguments"
+	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_REQ_POS_ARGS ]] && bap_error "too few arguments"
 	[[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POS_ARGS ]] && bap_error "too many arguments"
 	for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do __save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"; done
 }
