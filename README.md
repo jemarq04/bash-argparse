@@ -13,6 +13,52 @@ To retrieve the values of the optional/positional arguments, use `bap_get` and `
 To throw an error and print a message with the required usage for your script, use the `bap_error` function. 
 To see how to use all of the functions at your disposal, read the following section.
 
+### Example Setup
+
+To see in-depth explanations of each of the functions, look below in 'Function Documentation.' For a general example of how this program works,
+I've created a simple example below. 
+
+Let's say we wanted a script to create a user. We will need a username and a password. Maybe we also need an email for records, and some other information.
+We would set this up in some `user.sh` file below:
+
+```sh
+#!/bin/bash
+
+source BashArgParse # This brings everything into scope that we would need to create our script.
+
+bap_set_name $0 # This is a required function call so BAP knows the name of your script.
+bap_set_desc "This is a description of the script you are creating. It will appear in the help screen."
+
+bap_add_help # This would add the '-h/--help' flag into your script.
+bap_add_version "Version 2.0" # This is in case a version string is useful for your script.
+
+# Now, let's add important flags. Let's say that the email is OPTIONAL. Let's create a string flag for it. See the documentation for more information.
+bap_add_sflag --email 1 false "user's email" "youremail@website.com"
+
+# We may also need to know if this user is an administrator of sorts. Let's add a boolean flag.
+bap_add_bflag -a/--admin false "if given, the user is given admin status"
+
+# Maybe we also want the age of the user. Let's add an integer flag. Let's make this one required.
+bap_add_iflag -g/--age 1 true "age of the user"
+
+# Now let's ask for the most important stuff. We'll make these positional arguments.
+bap_add_posarg username "username for the user"
+bap_add_posarg password "password for the user"
+
+bap_parse "$@" # We call this at the end to parse the command-line arguments. Note the double-quotes!
+
+# Here's where we would add the logic for our program. But first, we need the variables given by the user.
+
+email=$(bap_get --email) && [[ -z $email ]] && email="NONE" # By default, the variables will be BLANK if they were not provided. I check and give a default value
+admin=$(bap_get -a/--admin) && [[ -z $admin ]] && admin=false
+age=$(bap_get --age) # This is required, so no need to check if it's blank!
+username=$(bap_get username)
+password=$(bap_get password)
+
+# Now that we have all the information we need, we would add the rest below.
+
+```
+
 ## Function Documentation
 
 There are several functions that are in the script that will make your job making your script easier. I'll explain them here:
@@ -50,7 +96,7 @@ Usage: `bap_add_version $version`.
 * `bap_add_iflag`: 
 Use this function to add an integer flag to your script.
 Usage: `bap_add_iflag $arg $nargs "$message" [$metavarlist]`.
-  * `$arg` is the name of the flag (e.g. `-n/--num`)
+  * `$arg` is the name of the flag (e.g. `-n/--num`); the flag can be short form (`-n`), long form (`--num`), or both (`-n/--num`) separated by a slash `/`
   * `$nargs` is the number of values the flag takes
   * `$message` is the explanation of the flag's purpose
   * `$metavarlist` is an optional comma-separated list of metavariables for the usage/help string. 
