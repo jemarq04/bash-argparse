@@ -1,9 +1,8 @@
 # Bash Argument Parser (BAP)
 
 This repository contains the script necessary to implement argument parsing in your bash script. All that needs to be done is to move `BashArgParse` into
-your `PATH` and add `source BashArgParse` at the beginning of your bash script. If need be, `BashArgParse.end` is provided to clean up the variables 
-and functions defined in `BashArgParse`. (For example, if you define a *function* that sources `BashArgParse`, then you would need to `unset` the variables
-and functions that were defined. So you would add `source BashArgParse.end` at the end of your function.)
+your `PATH` and add `source BashArgParse` at the beginning of your bash script. **NOTE:** This can only be done the main body of a bash script,
+not in a function call. There are calls to `exit` that would exit your terminal if used through a function call.
 
 ## Using BAP
 
