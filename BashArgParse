@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.1.2
+#Bash Argument Parser (BAP) v2.1.3
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -186,19 +186,19 @@ function __save_posarg { # save_posarg $arg $argval
 	__BAP_SAVED_ARGS="${__BAP_SAVED_ARGS}__BAP_POSARG_$name "
 }
 # SCRIPT FUNCTIONS ==============================================================================
-function bap_error {
+function bap_error { # bap_error (OR) bap_error $message (OR) bap_error $arg $message
 	[[ $# -eq 0 ]] && __die "error"
 	[[ $# -eq 1 ]] && __die "error: $1"
 	__die "error: argument $1: $2"
 }
 
-function bap_set_name {
+function bap_set_name { # bap_set_name $name
 	[[ $# -ne 1 ]] && bap_error "set_name() requires 1 argument"
 	__BAP_USAGE="usage: `basename $1`"
 	__BAP_PREUSAGE_LEN=${#__BAP_USAGE}
 }
 
-function bap_set_desc {
+function bap_set_desc { # bap_set_desc $desc
 	[[ $# -ne 1 ]] && bap_error "set_desc() requires 1 argument" 
 	local descstring=$1
 	__BAP_DESC=""
@@ -214,7 +214,7 @@ function bap_set_desc {
 	done
 }
 
-function bap_set_line_cap {
+function bap_set_line_cap { # bap_set_line_cap $num
 	[[ -z $__BAP_USAGE ]] && bap_error "you must call \`bap_set_name \$0\` before adding arguments"
 	[[ $# -ne 1 ]] && bap_error "set_desc() requires 1 argument" 
 	[[ ! $1 =~ ^[0-9]+$ ]] && bap_error "invalid integer: '$1'"
@@ -222,13 +222,13 @@ function bap_set_line_cap {
 	__BAP_LINE_CAP=$1
 }
 
-function bap_add_help { 
+function bap_add_help { # bap_add_help
 	__BAP_ADD_HELP=true
 	__check_lists "-h/--help" false
 	__add_help "-h/--help" 0 false "print this help message and exit"
 }
 
-function bap_add_version { 
+function bap_add_version { # bap_add_version $version
 	[[ $# -ne 1 ]] && bap_error "add_version() requires 1 argument"
 	__BAP_ADD_VERSION=true
 	__check_lists "--version" false
@@ -236,7 +236,7 @@ function bap_add_version {
 	__BAP_VERSION="$1"
 }
 
-function bap_add_iflag { # add_iflag $arg $nargs $required $help_message [$metavar]
+function bap_add_iflag { # bap_add_iflag $arg $nargs $required $message [$metavarlist]
 	[[ $# -lt 4 ]] && bap_error "add_iflag() requires at least 4 arguments"
 	[[ $# -gt 5 ]] && bap_error "add_iflag() requires no more than 5 arguments"
 	__check_lists $1 $3
@@ -246,7 +246,7 @@ function bap_add_iflag { # add_iflag $arg $nargs $required $help_message [$metav
 	__BAP_IFLAGS_REQ+=($3)
 }
 
-function bap_add_fflag {
+function bap_add_fflag { # bap_add_fflag $arg $nargs $required $message [$metavarlist]
 	[[ $# -lt 4 ]] && bap_error "add_fflag() requires at least 4 arguments"
 	[[ $# -gt 5 ]] && bap_error "add_fflag() requires no more than 5 arguments"
 	__check_lists $1 $3
@@ -256,7 +256,7 @@ function bap_add_fflag {
 	__BAP_FFLAGS_REQ+=($3)
 }
 
-function bap_add_sflag {
+function bap_add_sflag { # bap_add_iflag $arg $nargs $required $message [$metavarlist]
 	[[ $# -lt 4 ]] && bap_error "add_sflag() requires at least 4 arguments"
 	[[ $# -gt 5 ]] && bap_error "add_sflag() requires no more than 5 arguments"
 	__check_lists $1 $3
@@ -266,7 +266,7 @@ function bap_add_sflag {
 	__BAP_SFLAGS_REQ+=($3)
 }
 
-function bap_add_bflag { # add_bflag $arg $help_message
+function bap_add_bflag { # add_bflag $arg $message
 	[[ $# -ne 2 ]] && bap_error "add_bflag() requires 2 arguments"
 	__check_lists $1 false
 	__add_help $1 0 false "$2"
@@ -274,7 +274,7 @@ function bap_add_bflag { # add_bflag $arg $help_message
 	__BAP_BFLAGS_REQ+=(false)
 }
 
-function bap_add_posarg { # add_posarg $arg $help_message
+function bap_add_posarg { # add_posarg $arg $required $message
 	[[ $# -ne 3 ]] && bap_error "add_posarg() requires 3 arguments"
 	(( __BAP_NUM_POS_ARGS++ ))
 	$2 && (( __BAP_NUM_REQ_POS_ARGS++ ))
@@ -282,7 +282,7 @@ function bap_add_posarg { # add_posarg $arg $help_message
 	__BAP_POSARGS+=($1)
 }
 
-function bap_parse {
+function bap_parse { # bap_parse "$@"
 	while (( "$#" )); do
 		if [[ $1 =~ ^- ]]; then
 			if $__BAP_ADD_HELP; then
@@ -476,7 +476,7 @@ function bap_parse {
 	for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do __save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"; done
 }
 
-function bap_get {
+function bap_get { # bap_get $arg (OR) bap_get $arg $i
 	[[ $# -lt 1 ]] && bap_error "get() requires at least 1 argument"
 	local arg="${1%\"}"
 	local arg="${arg#\"}"
@@ -503,7 +503,7 @@ function bap_get {
 	fi
 }
 
-function bap_get_len {
+function bap_get_len { # bap_get_len $arg
 	[[ $# -ne 1 ]] && bap_error "get_len() requires 1 argument"
 	local arg="${1%\"}"
 	local arg="${arg#\"}"
@@ -529,21 +529,22 @@ function bap_get_len {
 	fi
 }
 
-function bap_get_int {
+function bap_get_int { # bap_get_int $arg
 	[[ $# -lt 1 ]] && bap_error "get_int() requires at least 1 argument"
 	local result=$(bap_get $1)
 	[[ $result =~ ^[0-9]+$ ]] && echo $result || echo ""
 }
 
-function bap_get_float {
+function bap_get_float { # bap_get_float $arg
 	[[ $# -lt 1 ]] && bap_error "get_float() requires at least 1 argument"
 	local result=$(bap_get $1)
 	[[ $result =~ ^[0-9]+([.][0-9]+)?$ ]] && echo $result || echo ""
 }
 
-function bap_get_else {
-	[[ $# -lt 2 ]] && bap_error "get_else() requires 2 arguments"
+function bap_get_else { # bap_get_else $arg (OR) bap_get_else $arg $default
+	[[ $# -lt 1 ]] && bap_error "get_else() requires at least 1 argument"
 	local result=$(bap_get $1)
-	[[ -z $result ]] && echo $2 || echo $result
+	[[ -z $2 ]] && local default=false || local default=$2 
+	[[ -z $result ]] && echo $default || echo $result
 }
 # ===============================================================================================
