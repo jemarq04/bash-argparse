@@ -95,9 +95,10 @@ Usage: `bap_add_version $version`.
 
 * `bap_add_iflag`: 
 Use this function to add an integer flag to your script.
-Usage: `bap_add_iflag $arg $nargs "$message" [$metavarlist]`.
+Usage: `bap_add_iflag $arg $nargs $required "$message" [$metavarlist]`.
   * `$arg` is the name of the flag (e.g. `-n/--num`); the flag can be short form (`-n`), long form (`--num`), or both (`-n/--num`) separated by a slash `/`
   * `$nargs` is the number of values the flag takes
+  * `$required` is the boolean value for whether or not the flag is required
   * `$message` is the explanation of the flag's purpose
   * `$metavarlist` is an optional comma-separated list of metavariables for the usage/help string. 
   For example, `bap_add_iflag -m/--minmax 2 "help message"` will be
@@ -114,22 +115,24 @@ Usage: `bap_add_iflag $arg $nargs "$message" [$metavarlist]`.
 
 * `bap_add_fflag`:
 Use this function to add a float flag to your script. The usage is the same as that for integer flags above.
-Usage: `bap_add_fflag $arg $nargs "$message" [$metavarlist]`.
+Usage: `bap_add_fflag $arg $nargs $required "$message" [$metavarlist]`.
 
 * `bap_add_sflag`:
 Use this function to add a string flag to your script. The usage is the same as that for integer flags above.
-Usage: `bap_add_sflag $arg $nargs "$message" [$metavarlist]`.
+Usage: `bap_add_sflag $arg $nargs $required "$message" [$metavarlist]`.
 
 * `bap_add_bflag`:
 Use this function to add a boolean flag to your script. The usage is the same as that for integer flags above, but omits `$nargs` and `[$metavarlist]`
 because boolean flags take no arguments.
-Usage: `bap_add_bflag $arg "$message"`.
+Usage: `bap_add_bflag $arg $required "$message"`.
 
 * `bap_add_posarg`:
-Use this function to add a positional argument to your script. Currently, positional arguments do not have the ability to check if
+Use this function to add a positional argument to your script. Unlike some argument parsers, you can set whether or not the positional
+argument is required. Note that required positional arguments cannot follow optional positional arguments.
+Currently, positional arguments do not have the ability to check if
 an integer/float is provided. Essentially, it will be assumed that the value is a string. If you wish to designate a positional argument
 as an integer argument, you must do the error checking yourself. (To be added.)
-Usage: `bap_add_posarg $posarg "$message"`.
+Usage: `bap_add_posarg $posarg $required "$message"`.
 
 * `bap_parse`:
 Use this function to parse the command line arguments. This is done **after** you have added all of the flags and positional arguments necessary
