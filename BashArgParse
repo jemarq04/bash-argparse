@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.0.3
+#Bash Argument Parser (BAP) v2.1.0
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -527,5 +527,23 @@ function bap_get_len {
 	else 
 		echo 1
 	fi
+}
+
+function bap_get_int {
+	[[ $# -lt 1 ]] && bap_error "check_int() requires at least 1 argument"
+	local result=$(bap_get $1)
+	[[ $result =~ ^[0-9]+$ ]] && echo $result || echo ""
+}
+
+function bap_get_float {
+	[[ $# -lt 1 ]] && bap_error "check_float() requires at least 1 argument"
+	local result=$(bap_get $1)
+	[[ $result =~ ^[0-9]+([.][0-9]+)?$ ]] && echo $result || echo ""
+}
+
+function bap_get_else {
+	[[ $# -lt 2 ]] && bap_error "get_else() requires 2 arguments"
+	local result=$(bap_get $1)
+	[[ -z $result ]] && echo $2 || echo $result
 }
 # ===============================================================================================
