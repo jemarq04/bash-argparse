@@ -101,13 +101,13 @@ Usage: `bap_add_iflag $arg $nargs $required "$message" [$metavarlist]`.
   * `$required` is the boolean value for whether or not the flag is required
   * `$message` is the explanation of the flag's purpose
   * `$metavarlist` is an optional comma-separated list of metavariables for the usage/help string. 
-  For example, `bap_add_iflag -m/--minmax 2 "help message"` will be
+  For example, `bap_add_iflag -m/--minmax 2 false "help message"` will be
   ```
     -m/--minmax MINMAX1 MINMAX2:
            help message
   ```
   without the metavariable string. Let's say you wanted to have the first number as the minimum and the second as the maximum. 
-  Then, you could run `bap_add_iflag -m/--minmax 2 "help message" "min,max"`. This would give
+  Then, you could run `bap_add_iflag -m/--minmax 2 false "help message" "min,max"`. This would give
   ```
     -m/--minmax min max:
           help message
