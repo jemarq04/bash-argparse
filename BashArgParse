@@ -266,12 +266,12 @@ function bap_add_sflag {
 	__BAP_SFLAGS_REQ+=($3)
 }
 
-function bap_add_bflag { # add_bflag $arg $required $help_message
-	[[ $# -ne 3 ]] && bap_error "add_bflag() requires 3 arguments"
-	__check_lists $1 $2
-	__add_help $1 0 $2 "$3"
+function bap_add_bflag { # add_bflag $arg $help_message
+	[[ $# -ne 2 ]] && bap_error "add_bflag() requires 2 arguments"
+	__check_lists $1 false
+	__add_help $1 0 false "$2"
 	__BAP_BFLAGS+=($1)
-	__BAP_BFLAGS_REQ+=($2)
+	__BAP_BFLAGS_REQ+=(false)
 }
 
 function bap_add_posarg { # add_posarg $arg $help_message

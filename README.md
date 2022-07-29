@@ -36,7 +36,7 @@ bap_add_version "Version 2.0" # This is in case a version string is useful for y
 bap_add_sflag --email 1 false "user's email" "youremail@website.com"
 
 # We may also need to know if this user is an administrator of sorts. Let's add a boolean flag.
-bap_add_bflag -a/--admin false "if given, the user is given admin status"
+bap_add_bflag -a/--admin "if given, the user is given admin status"
 
 # Maybe we also want the age of the user. Let's add an integer flag. Let's make this one required.
 bap_add_iflag -g/--age 1 true "age of the user"
@@ -123,8 +123,8 @@ Usage: `bap_add_sflag $arg $nargs $required "$message" [$metavarlist]`.
 
 * `bap_add_bflag`:
 Use this function to add a boolean flag to your script. The usage is the same as that for integer flags above, but omits `$nargs` and `[$metavarlist]`
-because boolean flags take no arguments.
-Usage: `bap_add_bflag $arg $required "$message"`.
+because boolean flags take no arguments. As it would be odd to require a boolean flag, this has also been omitted. 
+Usage: `bap_add_bflag $arg "$message"`.
 
 * `bap_add_posarg`:
 Use this function to add a positional argument to your script. Unlike some argument parsers, you can set whether or not the positional
