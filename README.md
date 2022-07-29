@@ -156,7 +156,7 @@ With the introduction of BAP 2.1.0, more helper functions were added to make com
 
 * `bap_get_int`
 Use this function to retrieve the value of a given optional/positional argument (if and only if it is an integer). This function is identical to 
-`bap_get`, except that it will return an empty string if the given argument is not an integer. Since this function checks if the given argument
+`bap_get`, except that it will throw an error through `bap_error` if the given argument is not an integer. Since this function checks if the given argument
 is an integer, it also assumes that there is only one value and does not take an index `$i`. This is ideally for use with positional arguments,
 which have no internal property for datatype, but is usable with flags as well.
 Usage: `bap_get_int $arg`.
@@ -172,3 +172,7 @@ not provided by the user, this function will return the default value you provid
 Usage: `bap_get_else $arg $default`.
   * If the optional flag is a boolean flag, you can simply run `bap_get_else $arg`. If the flag was not provided by the user, this function will
 	return false.
+
+* `bap_get_choice`
+Use this function to retrieve the value of a given argument. If the argument is not one of the given choices you provide, it will throw an error.
+Usage: `bap_get_choice $arg $choice1 $choice2 $...`

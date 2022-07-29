@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.1.3
+#Bash Argument Parser (BAP) v2.1.4
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -45,7 +45,7 @@ __BAP_USAGE=""
 __BAP_PREUSAGE_LEN=0
 # ===============================================================================================
 
-function __die { echo "$__BAP_USAGE"; echo $@ >&2; exit 1; }
+function __die { echo "$__BAP_USAGE" >&2; echo $@ >&2; exit 1; }
 function __check_lists { 
 	[[ $# -ne 2 ]] && __die "error: __check_lists() requires 2 arguments"
 	local first=`cut -d / -f 1 <<< $1`
@@ -532,13 +532,13 @@ function bap_get_len { # bap_get_len $arg
 function bap_get_int { # bap_get_int $arg
 	[[ $# -lt 1 ]] && bap_error "get_int() requires at least 1 argument"
 	local result=$(bap_get $1)
-	[[ $result =~ ^[0-9]+$ ]] && echo $result || echo ""
+	[[ $result =~ ^[0-9]+$ ]] && echo $result || bap_error $1 "invalid int: '$result'"
 }
 
 function bap_get_float { # bap_get_float $arg
 	[[ $# -lt 1 ]] && bap_error "get_float() requires at least 1 argument"
 	local result=$(bap_get $1)
-	[[ $result =~ ^[0-9]+([.][0-9]+)?$ ]] && echo $result || echo ""
+	[[ $result =~ ^[0-9]+([.][0-9]+)?$ ]] && echo $result || bap_error $1 "invalid float: '$result'"
 }
 
 function bap_get_else { # bap_get_else $arg (OR) bap_get_else $arg $default
@@ -546,5 +546,21 @@ function bap_get_else { # bap_get_else $arg (OR) bap_get_else $arg $default
 	local result=$(bap_get $1)
 	[[ -z $2 ]] && local default=false || local default=$2 
 	[[ -z $result ]] && echo $default || echo $result
+}
+
+function bap_get_choice { # bap_get_choice $arg $choice1 $choice2 $...
+	[[ $# -lt 2 ]] && bap_error "get_choice() requires at least two arguments"
+	local arg=$1
+	local result=$(bap_get $1)
+	shift
+	local found_choice=false
+	for w in "$@"; do [ $w = $result ] && local found_choice=true; done
+	
+	local msg="invalid choice: '$result' (choose from $1"
+	shift
+	for w in "$@"; do local msg="$msg, $w"; done
+	local msg="$msg)"
+	
+	$found_choice && echo $result || bap_error $arg "$msg"
 }
 # ===============================================================================================
