@@ -131,7 +131,7 @@ Use this function to add a positional argument to your script. Unlike some argum
 argument is required. Note that required positional arguments cannot follow optional positional arguments.
 Currently, positional arguments do not have the ability to check if
 an integer/float is provided. Essentially, it will be assumed that the value is a string. If you wish to designate a positional argument
-as an integer argument, you must do the error checking yourself. (To be added.)
+as an integer argument, you must do the error checking using the functions added in version 2.1.0 given in "More Helper Functions".
 Usage: `bap_add_posarg $posarg $required "$message"`.
 
 * `bap_parse`:
