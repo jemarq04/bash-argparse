@@ -170,5 +170,5 @@ Usage: `bap_get_float $arg`.
 Use this function to retrieve the value of a given optional flag (or positional argument). If the optional flag (or positional argument) was 
 not provided by the user, this function will return the default value you provide. 
 Usage: `bap_get_else $arg $default`.
-  * If the optional flag is a boolean flag, you can simply run `bap_get_else $arg`. If the flag was not provided byt he user, this function will
+  * If the optional flag is a boolean flag, you can simply run `bap_get_else $arg`. If the flag was not provided by the user, this function will
 	return false.
