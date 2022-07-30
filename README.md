@@ -128,11 +128,11 @@ Usage: `bap_add_bflag $arg "$message"`.
 
 * `bap_add_posarg`:
 Use this function to add a positional argument to your script. Unlike some argument parsers, you can set whether or not the positional
-argument is required. Note that required positional arguments cannot follow optional positional arguments.
-Currently, positional arguments do not have the ability to check if
-an integer/float is provided. Essentially, it will be assumed that the value is a string. If you wish to designate a positional argument
-as an integer argument, you must do the error checking using the functions added in version 2.1.0 given in "More Helper Functions".
-Usage: `bap_add_posarg $posarg $required "$message"`.
+argument is required. Note that required positional arguments cannot follow optional positional arguments. If you wish to designate a 
+positional argument as an integer argument, you must do the error checking using the functions added in version 2.1.0 given in "More 
+Helper Functions", as BAP does not keep track of positional argument datatypes. Note that positional arguments can also have metavariables,
+but, similarly to flags, they cannot be used to retrieve the value provided by the user.
+Usage: `bap_add_posarg $posarg $required "$message" [$metavar]`.
 
 * `bap_parse`:
 Use this function to parse the command line arguments. This is done **after** you have added all of the flags and positional arguments necessary

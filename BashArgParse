@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.1.4
+#Bash Argument Parser (BAP) v2.1.5
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -34,6 +34,9 @@ __BAP_BEGIN=false
 
 __BAP_SAVED_ARGS=""
 
+trap "exit 1" TERM
+__BAP_TOP_PID=$$
+
 # SCRIPT OPTIONS ================================================================================
 __BAP_NUM_POS_ARGS=0
 __BAP_NUM_REQ_POS_ARGS=0
@@ -45,7 +48,7 @@ __BAP_USAGE=""
 __BAP_PREUSAGE_LEN=0
 # ===============================================================================================
 
-function __die { echo "$__BAP_USAGE" >&2; echo $@ >&2; exit 1; }
+function __die { echo "$__BAP_USAGE" >&2; echo $@ >&2; kill -s TERM $__BAP_TOP_PID; }
 function __check_lists { 
 	[[ $# -ne 2 ]] && __die "error: __check_lists() requires 2 arguments"
 	local first=`cut -d / -f 1 <<< $1`
@@ -108,14 +111,15 @@ function __add_help {
 		done
 		$3 || local usagestr="$usagestr]"
 	else
-		[[ $# -ne 3 ]] && __die "error: add_help() requires 3 arguments for positional arguments"
+		[[ $# -lt 3 || $# -gt 4 ]] && __die "error: __add_help() requires 3-4 arguments for positional arguments"
 		if [[ $__BAP_NUM_POS_ARGS -ne $__BAP_NUM_REQ_POS_ARGS && $2 = true ]]; then
 			__die "error: required positional arguments cannot follow after optional positional arguments"
 		fi
 		$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
 		__BAP_ADDED_POSARG_HELP=true
-
-		local helpstr=$(printf "\n  $1:\n\t")
+		
+		[[ -z $4 ]] && local argname=$1 || local argname=$4
+		local helpstr=$(printf "\n  $argname:\n\t")
 		__BAP_HELP_LEN=0
 		for word in $3; do
 			local num=${#word}
@@ -132,8 +136,7 @@ function __add_help {
 				__BAP_HELP_LEN=$num
 			fi
 		done
-
-		$2 && local usagestr=$1 || local usagestr="[$1]"
+		$2 && local usagestr=$argname || local usagestr="[$argname]"
 	fi
 	
 	__BAP_HELP=$(printf "$__BAP_HELP$helpstr")
@@ -274,8 +277,9 @@ function bap_add_bflag { # add_bflag $arg $message
 	__BAP_BFLAGS_REQ+=(false)
 }
 
-function bap_add_posarg { # add_posarg $arg $required $message
-	[[ $# -ne 3 ]] && bap_error "add_posarg() requires 3 arguments"
+function bap_add_posarg { # add_posarg $arg $required $message [$metavar]
+	[[ $# -lt 3 ]] && bap_error "add_posarg() requires at least 3 arguments"
+	[[ $# -gt 4 ]] && bap_error "add_posarg() requires no more than 4 arguments"
 	(( __BAP_NUM_POS_ARGS++ ))
 	$2 && (( __BAP_NUM_REQ_POS_ARGS++ ))
 	__add_help "$@"
