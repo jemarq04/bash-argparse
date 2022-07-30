@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.1.5
+#Bash Argument Parser (BAP) v2.1.6
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -218,8 +218,8 @@ function bap_set_desc { # bap_set_desc $desc
 }
 
 function bap_set_line_cap { # bap_set_line_cap $num
-	[[ -z $__BAP_USAGE ]] && bap_error "you must call \`bap_set_name \$0\` before adding arguments"
-	[[ $# -ne 1 ]] && bap_error "set_desc() requires 1 argument" 
+	[[ -z $__BAP_USAGE ]] && bap_error "you must call \`bap_set_name \$0\` before setting the line cap"
+	[[ $# -ne 1 ]] && bap_error "set_line_cap() requires 1 argument"
 	[[ ! $1 =~ ^[0-9]+$ ]] && bap_error "invalid integer: '$1'"
 	[[ $1 -lt $__BAP_PREUSAGE_LEN ]] && bap_error "line cap must be greater than $__BAP_PREUSAGE_LEN"
 	__BAP_LINE_CAP=$1
