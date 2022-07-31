@@ -207,7 +207,7 @@ bap_add_bflag "-v/--verbose" "print lots of foo and bar. maybe even baz."
 
 # Here are the two special functions for the base command.
 bap_add_subparsers bar baz	# This function allows you to enumerate the subparsers available.
-bap_subparse "$@"			# This function replaces 'bap_parse', but is used in the same way.
+bap_subparse "$@"		# This function replaces 'bap_parse', but is used in the same way.
 ```
 
 Now we need to create two separate files for each of the subcommands. The names *must* be `foo-bar` and `foo-baz` for the parser to run them properly.
