@@ -175,4 +175,61 @@ Usage: `bap_get_else $arg $default`.
 
 * `bap_get_choice`
 Use this function to retrieve the value of a given argument. If the argument is not one of the given choices you provide, it will throw an error.
-Usage: `bap_get_choice $arg $choice1 $choice2 $...`
+Usage: `bap_get_choice $arg $choice1 $choice2 ...`
+
+## Subparsers
+
+There is also basic capability for "subparsers" in your scripts. (For example, `add` in the command `git add` will parse arguments differently than
+`commit` in `git commit`.) To do this, you simply need to create a script for each subcommand you wish to run. There are also different commands
+specific to subparsers that will need to be used. To see how this works, let's look at the following example.
+
+### Subparsers: Example Setup
+
+If you are still unfamiliar with how BAP works, see the first example setup at the beginning of this document. (Note that BAP does not yet support
+subparsers within a script unless the script is named without a file extension. Make sure to add the shebang at the top of the file to do this.)
+To see in-depth explanations of the subparser functions, see the section below. Let's say we want to create a script 'foo' which will have subcommands
+'bar' and 'baz'. We would then construct our file `foo` as follows.
+
+```sh
+#!/bin/bash
+#File: foo
+
+source BashArgParse
+
+bap_set_name $0
+bap_set_desc "A sample command with subcommands."
+
+# We can add as many flags as we want, including 'help' and 'version'.
+bap_add_help 
+bap_add_bflag "-v/--verbose" "print lots of foo and bar. maybe even baz."
+
+# Note you cannot add positional arguments in the base command!
+
+# Here are the two special functions for the base command.
+bap_add_subparsers bar baz	# This function allows you to enumerate the subparsers available.
+bap_subparse "$@"			# This function replaces 'bap_parse', but is used in the same way.
+```
+
+Now we need to create two separate files for each of the subcommands. The names *must* be `foo-bar` and `foo-baz` for the parser to run them properly.
+You construct the subcommand scripts the same as you would any other BAP script, but instead of the usual `bap_set_name $0` call, you must call
+`bap_set_subname $0` for the usage string to print properly. (If you don't mind the dash in the name, you can of course continue with `bap_set_name`.)
+
+### Subparsers: Function Documentation
+
+* `bap_set_subname`
+Use this function to set the name of the running subcommand script. For a subcommand script named `foo-bar`, this function will set the name of the command in
+the usage string as `foo bar` instead. (Note that either `bap_set_name` or `bap_set_subname` **MUST** be run for BAP to run properly.)
+Usage: `bap_set_subname $0` or `bap_set_subname $name`.
+  * For the script to automatically get the running script's name, run `bap_set_subname $0`.
+  * If you wish to name the script something differently for any reason, you can provide a different name.
+
+* `bap_add_subparsers`
+Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. (Note
+that BAP does not yet support subcommands with scripts named with file extensions. Omit them and be sure to add the shebang at the top of your file!)
+Usage: `bap_add_subparsers $subparser1 [$subparser2] ...`
+
+* `bap_subparse`
+Use this function to parse the command line arguments. This is done **after** you have added all of the flags and positional arguments necessary
+for your script. The `$@` variable must be encased in double quotes to preserve whitespaces in certain arguments. This command is used **INSTEAD** of
+	`bap_parse`, and will automatically call the subcommand script for you.
+Usage: `bap_subparse "$@"`.

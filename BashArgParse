@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.1.6
+#Bash Argument Parser (BAP) v2.2.0
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -31,6 +31,10 @@ __BAP_FOUND_FLAG=false
 __BAP_PRINT_HELP=false
 __BAP_PRINT_VERSION=false
 __BAP_BEGIN=false
+
+__BAP_USE_SUBPARSERS=false
+__BAP_SUBPARSER_CHOICES=""
+__BAP_SUBPARSER=""
 
 __BAP_SAVED_ARGS=""
 
@@ -67,12 +71,14 @@ function __add_help {
 	[[ -z $1 ]] && __die "error: __add_help() requires 4-5 arguments for flags, 3 arguments for positional arguments"
 	[[ -z $__BAP_USAGE ]] && __die "error: you must call \`bap_set_name \$0\` before adding arguments"
 	
+	local suppress=false
 	if [[ ${1:0:1} = "-" ]]; then
 		[[ $# -lt 4 || $# -gt 5 ]] && __die "error: __add_help() requires 4-5 arguments for flags (got $#)"
 		$__BAP_ADDED_FLAG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\noptional arguments:")
 		__BAP_ADDED_FLAG_HELP=true
 		
 		local helpstr=$(printf "\n  $1")
+		[[ -z $4 ]] && local suppress=true
 		local first=`cut -d / -f 1 <<< $1`
 		local second=`cut -d / -f 2 <<< $1`
 		local index=2
@@ -115,11 +121,16 @@ function __add_help {
 		if [[ $__BAP_NUM_POS_ARGS -ne $__BAP_NUM_REQ_POS_ARGS && $2 = true ]]; then
 			__die "error: required positional arguments cannot follow after optional positional arguments"
 		fi
-		$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
+		if ! $__BAP_USE_SUBPARSERS; then
+			$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
+		else
+			$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\nsubcommands:")
+		fi
 		__BAP_ADDED_POSARG_HELP=true
 		
 		[[ -z $4 ]] && local argname=$1 || local argname=$4
 		local helpstr=$(printf "\n  $argname:\n\t")
+		[[ -z $3 ]] && local suppress=true
 		__BAP_HELP_LEN=0
 		for word in $3; do
 			local num=${#word}
@@ -139,7 +150,7 @@ function __add_help {
 		$2 && local usagestr=$argname || local usagestr="[$argname]"
 	fi
 	
-	__BAP_HELP=$(printf "$__BAP_HELP$helpstr")
+	$suppress || __BAP_HELP=$(printf "$__BAP_HELP$helpstr")
 	local num=$(( ${#usagestr} + 1 ))
 	if (( $__BAP_PREUSAGE_LEN + $__BAP_USAGE_LEN + $num <= $__BAP_LINE_CAP || $__BAP_USAGE_LEN == 0 )); then
 		(( __BAP_USAGE_LEN += $num ))
@@ -198,6 +209,14 @@ function bap_error { # bap_error (OR) bap_error $message (OR) bap_error $arg $me
 function bap_set_name { # bap_set_name $name
 	[[ $# -ne 1 ]] && bap_error "set_name() requires 1 argument"
 	__BAP_USAGE="usage: `basename $1`"
+	__BAP_PREUSAGE_LEN=${#__BAP_USAGE}
+}
+
+function bap_set_subname { # bap_set_subname $name-subcommand
+	[[ $# -ne 1 ]] && bap_error "set_subname() requires 1 argument"
+	local name=$(basename $1 | rev | cut -d - -f2- | rev)
+	local subname=$(basename $1 | rev | cut -d - -f1 | rev)
+	__BAP_USAGE="usage: $name $subname"
 	__BAP_PREUSAGE_LEN=${#__BAP_USAGE}
 }
 
@@ -280,6 +299,7 @@ function bap_add_bflag { # add_bflag $arg $message
 function bap_add_posarg { # add_posarg $arg $required $message [$metavar]
 	[[ $# -lt 3 ]] && bap_error "add_posarg() requires at least 3 arguments"
 	[[ $# -gt 4 ]] && bap_error "add_posarg() requires no more than 4 arguments"
+	$__BAP_USE_SUBPARSERS && [[ $__BAP_NUM_POS_ARGS -ne 0 ]] && bap_error "scripts with subparsers cannot have positional arguments"
 	(( __BAP_NUM_POS_ARGS++ ))
 	$2 && (( __BAP_NUM_REQ_POS_ARGS++ ))
 	__add_help "$@"
@@ -287,6 +307,7 @@ function bap_add_posarg { # add_posarg $arg $required $message [$metavar]
 }
 
 function bap_parse { # bap_parse "$@"
+	$__BAP_USE_SUBPARSERS && __BAP_USAGE="$__BAP_USAGE ..."
 	while (( "$#" )); do
 		if [[ $1 =~ ^- ]]; then
 			if $__BAP_ADD_HELP; then
@@ -457,8 +478,11 @@ function bap_parse { # bap_parse "$@"
 					[[ $found_char = false ]] && bap_error "unrecognized arguments: $1"
 				done <<< ${1:1}
 			fi
-		else __BAP_PARAMS+=("$1"); fi
-
+		else 
+			__BAP_PARAMS+=("$1")
+			$__BAP_USE_SUBPARSERS && break
+		fi
+		
 		shift $__BAP_SHIFT_NUM
 		__BAP_SHIFT_NUM=1
 		__BAP_FOUND_FLAG=false
@@ -476,8 +500,9 @@ function bap_parse { # bap_parse "$@"
 	fi
 	for req in $__BAP_REQ_ARG_LIST; do [[ $__BAP_GIVEN_REQ_ARG_LIST = *"$req"* ]] || bap_error $req "argument is required"; done
 	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_REQ_POS_ARGS ]] && bap_error "too few arguments"
-	[[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POS_ARGS ]] && bap_error "too many arguments"
+	! $__BAP_USE_SUBPARSERS && [[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POS_ARGS ]] && bap_error "too many arguments"
 	for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do __save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"; done
+	$__BAP_USE_SUBPARSERS && __BAP_SUBPARSER=$(bap_get_choice "subcommands" $__BAP_SUBPARSER_CHOICES)
 }
 
 function bap_get { # bap_get $arg (OR) bap_get $arg $i
@@ -552,7 +577,7 @@ function bap_get_else { # bap_get_else $arg (OR) bap_get_else $arg $default
 	[[ -z $result ]] && echo $default || echo $result
 }
 
-function bap_get_choice { # bap_get_choice $arg $choice1 $choice2 $...
+function bap_get_choice { # bap_get_choice $arg $choice1 $choice2 ...
 	[[ $# -lt 2 ]] && bap_error "get_choice() requires at least two arguments"
 	local arg=$1
 	local result=$(bap_get $1)
@@ -566,5 +591,25 @@ function bap_get_choice { # bap_get_choice $arg $choice1 $choice2 $...
 	local msg="$msg)"
 	
 	$found_choice && echo $result || bap_error $arg "$msg"
+}
+
+function bap_add_subparsers { # bap_add_subparsers $subparser1 [$subparser2] ...
+	[[ $# -lt 1 ]] && bap_error "add_subparsers() requires at least one argument"
+	[[ $__BAP_NUM_POS_ARGS -gt 0 ]] && bap_error "scripts with subparsers cannot have positional arguments"
+	for i in "$@"; do [[ ! -f $0-$i ]] && bap_error "subcommand script not found: '$0-$i'"; done
+	__BAP_USE_SUBPARSERS=true
+	__BAP_SUBPARSER_CHOICES="$@"
+	local metavar="{$1"
+	shift
+	for s in "$@"; do local metavar="$metavar,$s"; done
+	local metavar="$metavar}"
+	bap_add_posarg "subcommands" true "additional help" $metavar
+}
+
+function bap_subparse { # bap_subparse "$@"
+	bap_parse "$@"
+	while [[ ! $1 = $__BAP_SUBPARSER ]]; do shift; done
+	shift
+	$0-$__BAP_SUBPARSER $@
 }
 # ===============================================================================================
