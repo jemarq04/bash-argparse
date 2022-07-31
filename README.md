@@ -49,8 +49,10 @@ bap_parse "$@" # We call this at the end to parse the command-line arguments. No
 
 # Here's where we would add the logic for our program. But first, we need the variables given by the user.
 
-email=$(bap_get --email) && [[ -z $email ]] && email="NONE" # By default, the variables will be BLANK if they were not provided. I check and give a default value
+email=$(bap_get --email) && [[ -z $email ]] && email="NONE"
+# Or we can run the following: email=$(bap_get_else --email "NONE")
 admin=$(bap_get -a/--admin) && [[ -z $admin ]] && admin=false
+# Once again, we can also run: admin=$(bap_get_else --admin)
 age=$(bap_get --age) # This is required, so no need to check if it's blank!
 username=$(bap_get username)
 password=$(bap_get password)
