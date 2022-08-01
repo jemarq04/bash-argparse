@@ -88,6 +88,11 @@ the given line length limit. This is not required to run your script.
 Use this function to change the line length limit of the help/usage strings. (Default: 70) 
   * Usage: `bap_set_line_cap $num`.
 
+* `bap_set_help`:
+Use this function to change the help string manually. Note that this will prevent BAP from dynamically adding to the help string as you add arguments
+to your script.
+  * Usage: `bap_set_help $helpstr`.
+
 * `bap_add_help`:
 Use this function to add a `-h/--help` flag into your script that will print the help message and exit when given.
   * Usage: `bap_add_help`.
@@ -176,7 +181,7 @@ not provided by the user, this function will return the default value you provid
 
 * `bap_get_choice`:
 Use this function to retrieve the value of a given argument. If the argument is not one of the given choices you provide, it will throw an error.
-  * Usage: `bap_get_choice $arg $choice1 $choice2 ...`
+  * Usage: `bap_get_choice $arg $choice1 $choice2 ...`.
 
 ## Subparsers
 
@@ -227,7 +232,7 @@ the usage string as `foo bar` automatically for you. (Note that either `bap_set_
 
 * `bap_add_subparsers`:
 Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. 
-  * Usage: `bap_add_subparsers $subparser1 [$subparser2] ...`
+  * Usage: `bap_add_subparsers $subparser1 [$subparser2] ...`.
 
 * `bap_subparse`:
 Use this function to parse the command line arguments. This is done **after** you have added all of the subparsers for your script.

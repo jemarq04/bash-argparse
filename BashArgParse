@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.2.2
+#Bash Argument Parser (BAP) v2.2.3
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -22,6 +22,7 @@ __BAP_USAGE_LEN=0
 __BAP_DESC_LEN=0
 __BAP_HELP_LEN=0
 __BAP_HELP=""
+__BAP_HELP_SUPPRESS=false
 __BAP_PARAMS=()
 __BAP_FLAG_LIST=""
 __BAP_LONG_FLAG_LIST=""
@@ -75,7 +76,7 @@ function __add_help {
 	local suppress=false
 	if [[ ${1:0:1} = "-" ]]; then
 		[[ $# -lt 4 || $# -gt 5 ]] && __die "error: __add_help() requires 4-5 arguments for flags (got $#)"
-		$__BAP_ADDED_FLAG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\noptional arguments:")
+		$__BAP_HELP_SUPPRESS || $__BAP_ADDED_FLAG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\noptional arguments:")
 		__BAP_ADDED_FLAG_HELP=true
 		
 		local helpstr=$(printf "\n  $1")
@@ -123,9 +124,9 @@ function __add_help {
 			__die "error: required positional arguments cannot follow after optional positional arguments"
 		fi
 		if ! $__BAP_USE_SUBPARSERS; then
-			$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
+			$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
 		else
-			$__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\nsubcommands:")
+			$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\nsubcommands:")
 		fi
 		__BAP_ADDED_POSARG_HELP=true
 		
@@ -151,7 +152,7 @@ function __add_help {
 		$2 && local usagestr=$argname || local usagestr="[$argname]"
 	fi
 	
-	$suppress || __BAP_HELP=$(printf "$__BAP_HELP$helpstr")
+	$__BAP_HELP_SUPPRESS || $suppress || __BAP_HELP=$(printf "$__BAP_HELP$helpstr")
 	local num=$(( ${#usagestr} + 1 ))
 	if (( $__BAP_PREUSAGE_LEN + $__BAP_USAGE_LEN + $num <= $__BAP_LINE_CAP || $__BAP_USAGE_LEN == 0 )); then
 		(( __BAP_USAGE_LEN += $num ))
@@ -260,6 +261,11 @@ function bap_set_line_cap { # bap_set_line_cap $num
 	[[ ! $1 =~ ^[0-9]+$ ]] && bap_error "invalid integer: '$1'"
 	[[ $1 -lt $__BAP_PREUSAGE_LEN ]] && bap_error "line cap must be greater than $__BAP_PREUSAGE_LEN"
 	__BAP_LINE_CAP=$1
+}
+
+function bap_set_help { # bap_set_help $helpstr
+	__BAP_HELP="$helpstr"
+	__BAP_HELP_SUPPRESS=true
 }
 
 function bap_add_help { # bap_add_help
