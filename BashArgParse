@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.2.3
+#Bash Argument Parser (BAP) v2.2.4
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -527,7 +527,7 @@ function bap_parse { # bap_parse "$@"
 	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_REQ_POSARGS ]] && bap_error "too few arguments"
 	! $__BAP_USE_SUBPARSERS && [[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POSARGS ]] && bap_error "too many arguments"
 	for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do __save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"; done
-	$__BAP_USE_SUBPARSERS && __BAP_SUBPARSER=$(bap_get_choice "subcommands" $__BAP_SUBPARSER_CHOICES)
+	$__BAP_USE_SUBPARSERS && __BAP_SUBPARSER=$(bap_get_choice "subcommand" $__BAP_SUBPARSER_CHOICES)
 }
 
 function bap_get { # bap_get $arg (OR) bap_get $arg $i
@@ -629,16 +629,19 @@ function bap_add_subparsers { # bap_add_subparsers $subparser1 [$subparser2] ...
 	shift
 	for s in "$@"; do local metavar="$metavar,$s"; done
 	local metavar="$metavar}"
-	bap_add_posarg "subcommands" true "additional help" $metavar
+	bap_add_posarg "subcommand" true "additional help" $metavar
+}
+
+function bap_get_subparser { # bap_get_subparser
+	local name="$(basename $0 | sed "s/\(.*\)\..*/\1/")-$__BAP_SUBPARSER"
+	if [[ -f $(dirname $0)/$name ]]; then echo $(dirname $0)/$name
+	elif [[ -f $(dirname $0)/$name.sh ]]; then $(dirname $0)/$name.sh
+	fi
 }
 
 function bap_subparse { # bap_subparse "$@"
-	bap_parse "$@"
 	while [[ ! $1 = $__BAP_SUBPARSER ]]; do shift; done
 	shift
-	local name="$(basename $0 | sed "s/\(.*\)\..*/\1/")-$__BAP_SUBPARSER"
-	if [[ -f $name ]]; then $(dirname $0)/$name $@
-	elif [[ -f $name.sh ]]; then $(dirname $0)/$name.sh $@
-	fi
+	$(bap_get_subparser) "$@"
 }
 # ===============================================================================================

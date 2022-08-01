@@ -212,7 +212,11 @@ bap_add_bflag "-v/--verbose" "print lots of foo and bar. maybe even baz."
 
 # Here are the two special functions for the base command.
 bap_add_subparsers bar baz	# This function allows you to enumerate the subparsers available.
-bap_subparse "$@"		# This function replaces 'bap_parse', but is used in the same way.
+bap_parse "$@"
+bap_subparse "$@"		# This function will automatically call the subcommand you need.
+
+# If you want the filename of the subcommand, you can also run
+# bap_get_subparser
 ```
 
 Now we need to create two separate files for each of the subcommands. The name of these files must be the main command followed by a dash and the
@@ -234,8 +238,11 @@ the usage string as `foo bar` automatically for you. (Note that either `bap_set_
 Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. 
   * Usage: `bap_add_subparsers $subparser1 [$subparser2] ...`.
 
+* `bap_get_subparser`:
+Use this function to retrieve the filename of the subcommand you want to run. This may be useful if you want the call to be different based on the
+flags given for the base command.
+  * Usage: `bap_get_subparser`.
+
 * `bap_subparse`:
-Use this function to parse the command line arguments. This is done **after** you have added all of the subparsers for your script.
-The `$@` variable must be encased in double quotes to preserve whitespaces in certain arguments. This command is used **INSTEAD** of
-`bap_parse`, and will automatically call the subcommand script for you.
+Use this function after `bap_parse "$@"` to automatically run the necessary subcommand based on the choice given by the user.
   * Usage: `bap_subparse "$@"`.
