@@ -1,10 +1,13 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.2.0
+#Bash Argument Parser (BAP) v2.2.1
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
 __BAP_BFLAGS=()
 __BAP_POSARGS=()
+__BAP_POSARGS_METAVARS=()
+__BAP_NUM_POSARGS=0
+__BAP_NUM_REQ_POSARGS=0
 __BAP_IFLAGS_REQ=()
 __BAP_FFLAGS_REQ=()
 __BAP_SFLAGS_REQ=()
@@ -42,8 +45,6 @@ trap "exit 1" TERM
 __BAP_TOP_PID=$$
 
 # SCRIPT OPTIONS ================================================================================
-__BAP_NUM_POS_ARGS=0
-__BAP_NUM_REQ_POS_ARGS=0
 __BAP_DESC=""
 __BAP_VERSION=""
 __BAP_LINE_CAP=70
@@ -118,7 +119,7 @@ function __add_help {
 		$3 || local usagestr="$usagestr]"
 	else
 		[[ $# -lt 3 || $# -gt 4 ]] && __die "error: __add_help() requires 3-4 arguments for positional arguments"
-		if [[ $__BAP_NUM_POS_ARGS -ne $__BAP_NUM_REQ_POS_ARGS && $2 = true ]]; then
+		if [[ $__BAP_NUM_POSARGS -ne $__BAP_NUM_REQ_POSARGS && $2 = true ]]; then
 			__die "error: required positional arguments cannot follow after optional positional arguments"
 		fi
 		if ! $__BAP_USE_SUBPARSERS; then
@@ -203,7 +204,17 @@ function __save_posarg { # save_posarg $arg $argval
 function bap_error { # bap_error (OR) bap_error $message (OR) bap_error $arg $message
 	[[ $# -eq 0 ]] && __die "error"
 	[[ $# -eq 1 ]] && __die "error: $1"
-	__die "error: argument $1: $2"
+	if [[ $1 = -* ]]; then
+		__die "error: argument $1: $2"
+	else
+		local found=-1
+		for i in $(eval echo "{0..$(( ${#__BAP_POSARGS[@]} - 1 ))}"); do [[ $1 = ${__BAP_POSARGS[$i]} ]] && local found=$i; done
+		if [[ $found -lt 0 ]]; then
+			__die "error: argument $1: $2"
+		else
+			__die "error: argument ${__BAP_POSARGS_METAVARS[$found]}: $2"
+		fi
+	fi
 }
 
 function bap_set_name { # bap_set_name $name
@@ -299,11 +310,12 @@ function bap_add_bflag { # add_bflag $arg $message
 function bap_add_posarg { # add_posarg $arg $required $message [$metavar]
 	[[ $# -lt 3 ]] && bap_error "add_posarg() requires at least 3 arguments"
 	[[ $# -gt 4 ]] && bap_error "add_posarg() requires no more than 4 arguments"
-	$__BAP_USE_SUBPARSERS && [[ $__BAP_NUM_POS_ARGS -ne 0 ]] && bap_error "scripts with subparsers cannot have positional arguments"
-	(( __BAP_NUM_POS_ARGS++ ))
-	$2 && (( __BAP_NUM_REQ_POS_ARGS++ ))
+	$__BAP_USE_SUBPARSERS && [[ $__BAP_NUM_POSARGS -ne 0 ]] && bap_error "scripts with subparsers cannot have positional arguments"
+	(( __BAP_NUM_POSARGS++ ))
+	$2 && (( __BAP_NUM_REQ_POSARGS++ ))
 	__add_help "$@"
 	__BAP_POSARGS+=($1)
+	[[ -z $4 ]] && __BAP_POSARGS_METAVARS+=($1) || __BAP_POSARGS_METAVARS+=($4)
 }
 
 function bap_parse { # bap_parse "$@"
@@ -499,8 +511,8 @@ function bap_parse { # bap_parse "$@"
 		exit 0
 	fi
 	for req in $__BAP_REQ_ARG_LIST; do [[ $__BAP_GIVEN_REQ_ARG_LIST = *"$req"* ]] || bap_error $req "argument is required"; done
-	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_REQ_POS_ARGS ]] && bap_error "too few arguments"
-	! $__BAP_USE_SUBPARSERS && [[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POS_ARGS ]] && bap_error "too many arguments"
+	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_REQ_POSARGS ]] && bap_error "too few arguments"
+	! $__BAP_USE_SUBPARSERS && [[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POSARGS ]] && bap_error "too many arguments"
 	for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do __save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"; done
 	$__BAP_USE_SUBPARSERS && __BAP_SUBPARSER=$(bap_get_choice "subcommands" $__BAP_SUBPARSER_CHOICES)
 }
@@ -595,7 +607,7 @@ function bap_get_choice { # bap_get_choice $arg $choice1 $choice2 ...
 
 function bap_add_subparsers { # bap_add_subparsers $subparser1 [$subparser2] ...
 	[[ $# -lt 1 ]] && bap_error "add_subparsers() requires at least one argument"
-	[[ $__BAP_NUM_POS_ARGS -gt 0 ]] && bap_error "scripts with subparsers cannot have positional arguments"
+	[[ $__BAP_NUM_POSARGS -gt 0 ]] && bap_error "scripts with subparsers cannot have positional arguments"
 	for i in "$@"; do [[ ! -f $0-$i ]] && bap_error "subcommand script not found: '$0-$i'"; done
 	__BAP_USE_SUBPARSERS=true
 	__BAP_SUBPARSER_CHOICES="$@"
