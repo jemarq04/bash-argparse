@@ -187,8 +187,7 @@ specific to subparsers that will need to be used. To see how this works, let's l
 
 ### Subparsers: Example Setup
 
-If you are still unfamiliar with how BAP works, see the first example setup at the beginning of this document. (Note that BAP does not yet support
-subparsers within a script unless the script is named without a file extension. Make sure to add the shebang at the top of the file to do this.)
+If you are still unfamiliar with how BAP works, see the first example setup at the beginning of this document. 
 To see in-depth explanations of the subparser functions, see the section below. Let's say we want to create a script 'foo' which will have subcommands
 'bar' and 'baz'. We would then construct our file `foo` as follows.
 
@@ -226,8 +225,7 @@ Usage: `bap_set_subname $0` or `bap_set_subname $name`.
   * If you wish to name the script something differently for any reason, you can provide a different name.
 
 * `bap_add_subparsers`
-Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. (Note
-that BAP does not yet support subcommands with scripts named with file extensions. Omit them and be sure to add the shebang at the top of your file!)
+Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. 
 Usage: `bap_add_subparsers $subparser1 [$subparser2] ...`
 
 * `bap_subparse`

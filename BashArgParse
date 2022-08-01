@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.2.1
+#Bash Argument Parser (BAP) v2.2.2
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -225,9 +225,16 @@ function bap_set_name { # bap_set_name $name
 
 function bap_set_subname { # bap_set_subname $name-subcommand
 	[[ $# -ne 1 ]] && bap_error "set_subname() requires 1 argument"
-	local name=$(basename $1 | rev | cut -d - -f2- | rev)
-	local subname=$(basename $1 | rev | cut -d - -f1 | rev)
-	__BAP_USAGE="usage: $name $subname"
+	#sed 's/\(.*\)\..*/\1/'
+	local temp=$(basename $1 | sed "s/\(.*\)\..*/\1/")
+	local name=$(basename $temp | rev | cut -d - -f2- | rev)
+	local subname=$(basename $temp | rev | cut -d - -f1 | rev)
+
+	if [[ -f $(dirname $0)/$name ]]; then
+		__BAP_USAGE="usage: $name $subname"
+	elif [[ -f $(dirname $0)/$name.sh ]]; then
+		__BAP_USAGE="usage: $name.sh $subname"
+	fi
 	__BAP_PREUSAGE_LEN=${#__BAP_USAGE}
 }
 
@@ -608,7 +615,8 @@ function bap_get_choice { # bap_get_choice $arg $choice1 $choice2 ...
 function bap_add_subparsers { # bap_add_subparsers $subparser1 [$subparser2] ...
 	[[ $# -lt 1 ]] && bap_error "add_subparsers() requires at least one argument"
 	[[ $__BAP_NUM_POSARGS -gt 0 ]] && bap_error "scripts with subparsers cannot have positional arguments"
-	for i in "$@"; do [[ ! -f $0-$i ]] && bap_error "subcommand script not found: '$0-$i'"; done
+	local name=$(basename $0 | sed "s/\(.*\)\..*/\1/")
+	for i in "$@"; do [[ ! -f $(dirname $0)/$name-$i && ! -f $(dirname $0)/$name-$i.sh ]] && bap_error "subcommand script not found: '$name-$i'"; done
 	__BAP_USE_SUBPARSERS=true
 	__BAP_SUBPARSER_CHOICES="$@"
 	local metavar="{$1"
@@ -622,6 +630,9 @@ function bap_subparse { # bap_subparse "$@"
 	bap_parse "$@"
 	while [[ ! $1 = $__BAP_SUBPARSER ]]; do shift; done
 	shift
-	$0-$__BAP_SUBPARSER $@
+	local name="$(basename $0 | sed "s/\(.*\)\..*/\1/")-$__BAP_SUBPARSER"
+	if [[ -f $name ]]; then $(dirname $0)/$name $@
+	elif [[ -f $name.sh ]]; then $(dirname $0)/$name.sh $@
+	fi
 }
 # ===============================================================================================
