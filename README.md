@@ -228,7 +228,7 @@ Usage: `bap_set_subname $0` or `bap_set_subname $name`.
 Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. 
 Usage: `bap_add_subparsers $subparser1 [$subparser2] ...`
 
-* `bap_subparse`
+* `bap_subparse`:
 Use this function to parse the command line arguments. This is done **after** you have added all of the subparsers for your script.
 The `$@` variable must be encased in double quotes to preserve whitespaces in certain arguments. This command is used **INSTEAD** of
 `bap_parse`, and will automatically call the subcommand script for you.
