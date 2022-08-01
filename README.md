@@ -156,26 +156,24 @@ Usage: `bap_get_len $arg`.
 
 With the introduction of BAP 2.1.0, more helper functions were added to make common checks in your script easier. I'll describe them below:
 
-* `bap_get_int`
+* `bap_get_int`:
 Use this function to retrieve the value of a given optional/positional argument (if and only if it is an integer). This function is identical to 
 `bap_get`, except that it will throw an error through `bap_error` if the given argument is not an integer. Since this function checks if the given argument
 is an integer, it also assumes that there is only one value and does not take an index `$i`. This is ideally for use with positional arguments,
 which have no internal property for datatype, but is usable with flags as well.
 Usage: `bap_get_int $arg`.
 
-* `bap_get_float`
+* `bap_get_float`:
 Use this function to retrieve the value of a given optional/positional argument (if and only if it is a float). This function is the same as
-`bap_get_int`, excelt that it will checks for a float rather than an integer.
+`bap_get_int`, except that it will check for a float rather than an integer.
 Usage: `bap_get_float $arg`.
 
-* `bap_get_else`
+* `bap_get_else`:
 Use this function to retrieve the value of a given optional flag (or positional argument). If the optional flag (or positional argument) was 
-not provided by the user, this function will return the default value you provide. 
-Usage: `bap_get_else $arg $default`.
-  * If the optional flag is a boolean flag, you can simply run `bap_get_else $arg`. If the flag was not provided by the user, this function will
-	return false.
+not provided by the user, this function will return the default value you provide. If a default value is not provided, the function will use `false`. 
+Usage: `bap_get_else $arg [$default]`.
 
-* `bap_get_choice`
+* `bap_get_choice`:
 Use this function to retrieve the value of a given argument. If the argument is not one of the given choices you provide, it will throw an error.
 Usage: `bap_get_choice $arg $choice1 $choice2 ...`
 
@@ -211,25 +209,27 @@ bap_add_subparsers bar baz	# This function allows you to enumerate the subparser
 bap_subparse "$@"		# This function replaces 'bap_parse', but is used in the same way.
 ```
 
-Now we need to create two separate files for each of the subcommands. The names *must* be `foo-bar` and `foo-baz` for the parser to run them properly.
-You construct the subcommand scripts the same as you would any other BAP script, but instead of the usual `bap_set_name $0` call, you must call
-`bap_set_subname $0` for the usage string to print properly. (If you don't mind the dash in the name, you can of course continue with `bap_set_name`.)
+Now we need to create two separate files for each of the subcommands. The name of these files must be the main command followed by a dash and the
+subcommand name. For example, here we would need to create `foo-bar` and `foo-baz`. (Note, we can also create `foo-bar.sh` and `foo-baz.sh` instead.
+The file extensions can always be used if preferred.)
+You construct the subcommand scripts the same as you would any other BAP script, but instead of the usual `bap_set_name $0` call, you should call
+`bap_set_subname $0` for the usage string to print properly. 
 
 ### Subparsers: Function Documentation
 
-* `bap_set_subname`
-Use this function to set the name of the running subcommand script. For a subcommand script named `foo-bar`, this function will set the name of the command in
-the usage string as `foo bar` instead. (Note that either `bap_set_name` or `bap_set_subname` **MUST** be run for BAP to run properly.)
+* `bap_set_subname`:
+Use this function to set the name of the running subcommand script. For a subcommand script named `foo-bar.sh`, this function will set the name of the command in
+the usage string as `foo bar` automatically for you. (Note that either `bap_set_name` or `bap_set_subname` **MUST** be run for BAP to run properly.)
 Usage: `bap_set_subname $0` or `bap_set_subname $name`.
   * For the script to automatically get the running script's name, run `bap_set_subname $0`.
   * If you wish to name the script something differently for any reason, you can provide a different name.
 
-* `bap_add_subparsers`
+* `bap_add_subparsers`:
 Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. 
 Usage: `bap_add_subparsers $subparser1 [$subparser2] ...`
 
 * `bap_subparse`
-Use this function to parse the command line arguments. This is done **after** you have added all of the flags and positional arguments necessary
-for your script. The `$@` variable must be encased in double quotes to preserve whitespaces in certain arguments. This command is used **INSTEAD** of
-	`bap_parse`, and will automatically call the subcommand script for you.
+Use this function to parse the command line arguments. This is done **after** you have added all of the subparsers for your script.
+The `$@` variable must be encased in double quotes to preserve whitespaces in certain arguments. This command is used **INSTEAD** of
+`bap_parse`, and will automatically call the subcommand script for you.
 Usage: `bap_subparse "$@"`.
