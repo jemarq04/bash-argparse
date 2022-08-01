@@ -1,7 +1,7 @@
 # Bash Argument Parser (BAP)
 
-This repository contains the script necessary to implement argument parsing in your bash script. All that needs to be done is to move `BashArgParse` into
-your `PATH` and add `source BashArgParse` at the beginning of your bash script. **NOTE:** This can only be done the main body of a bash script,
+This repository contains the script necessary to implement argument parsing in your own bash script. All that needs to be done is to move `BashArgParse` 
+into your `PATH` and add `source BashArgParse` at the beginning of your bash script. **NOTE:** This can only be done the main body of a bash script,
 not in a function call. There are calls to `exit` that would exit your terminal if used through a function call.
 
 ## Using BAP
@@ -63,7 +63,7 @@ password=$(bap_get password)
 
 ## Function Documentation
 
-There are several functions that are in the script that will make your job making your script easier. I'll explain them here:
+There are several functions that are in BAP that will make your job making your script easier. I'll explain them here:
 
 * `bap_error`: 
 Use this function to print an error message after a usage string and exit your script. The error message depends on the usage. 
