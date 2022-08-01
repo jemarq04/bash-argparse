@@ -214,10 +214,10 @@ bap_add_bflag "-v/--verbose" "print lots of foo and bar. maybe even baz."
 bap_add_subparsers bar baz	# This function allows you to enumerate the subparsers available.
 bap_parse "$@"
 bap_subparse "$@"		# This function will automatically call the subcommand you need.
-
-# If you want the filename of the subcommand, you can also run
-# bap_get_subparser
 ```
+
+If you want the filename of the subcommand, you can also run `bap_get_subparser`. Alternatively, you can retrieve the name of the subcommand itself
+chosen by the user by running `bap_get subcommand`.
 
 Now we need to create two separate files for each of the subcommands. The name of these files must be the main command followed by a dash and the
 subcommand name. For example, here we would need to create `foo-bar` and `foo-baz`. (Note, we can also create `foo-bar.sh` and `foo-baz.sh` instead.
