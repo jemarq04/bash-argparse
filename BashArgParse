@@ -123,8 +123,11 @@ function __add_help {
 		if [[ $__BAP_NUM_POSARGS -ne $__BAP_NUM_REQ_POSARGS && $2 = true ]]; then
 			__die "error: required positional arguments cannot follow after optional positional arguments"
 		fi
-		$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || $__BAP_USE_SUBPARSERS \
-			&& __BAP_HELP=$(printf "$__BAP_HELP\nsubcommands:") || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
+		if ! $__BAP_USE_SUBPARSERS; then
+			$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
+		else
+			$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\nsubcommands:") 
+		fi
 		__BAP_ADDED_POSARG_HELP=true
 		
 		[[ -z $4 ]] && local argname=$1 || local argname=$4
@@ -624,7 +627,9 @@ function bap_add_subparsers { # bap_add_subparsers $subparser1 [$subparser2] ...
 
 function bap_get_subparser { # bap_get_subparser
 	local name="$(dirname $0)/$(basename $0 | sed "s/\(.*\)\..*/\1/")-$__BAP_SUBPARSER"
-	[[ -f $name ]] && echo $name || [[ -f $name.sh ]] && echo $name.sh
+	if [[ -f $name ]]; then echo $name
+	elif [[ -f $name.sh ]]; then echo $name.sh
+	fi
 }
 
 function bap_subparse { # bap_subparse "$@"
