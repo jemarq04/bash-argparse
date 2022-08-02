@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.2.4
+#Bash Argument Parser (BAP) v2.2.5
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -67,7 +67,7 @@ function __check_lists {
 		[[ $__BAP_LONG_FLAG_LIST = *"$second"* ]] && __die "error: duplicate long flag $second"
 		__BAP_LONG_FLAG_LIST="$second $__BAP_LONG_FLAG_LIST"
 	fi
-	if $2; then __BAP_REQ_ARG_LIST="$1 $__BAP_REQ_ARG_LIST"; fi
+	$2 && __BAP_REQ_ARG_LIST="$1 $__BAP_REQ_ARG_LIST"
 }
 function __add_help {
 	[[ -z $1 ]] && __die "error: __add_help() requires 4-5 arguments for flags, 3 arguments for positional arguments"
@@ -123,11 +123,8 @@ function __add_help {
 		if [[ $__BAP_NUM_POSARGS -ne $__BAP_NUM_REQ_POSARGS && $2 = true ]]; then
 			__die "error: required positional arguments cannot follow after optional positional arguments"
 		fi
-		if ! $__BAP_USE_SUBPARSERS; then
-			$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
-		else
-			$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\nsubcommands:")
-		fi
+		$__BAP_HELP_SUPPRESS || $__BAP_ADDED_POSARG_HELP || $__BAP_USE_SUBPARSERS \
+			&& __BAP_HELP=$(printf "$__BAP_HELP\nsubcommands:") || __BAP_HELP=$(printf "$__BAP_HELP\npositional arguments:")
 		__BAP_ADDED_POSARG_HELP=true
 		
 		[[ -z $4 ]] && local argname=$1 || local argname=$4
@@ -205,17 +202,10 @@ function __save_posarg { # save_posarg $arg $argval
 function bap_error { # bap_error (OR) bap_error $message (OR) bap_error $arg $message
 	[[ $# -eq 0 ]] && __die "error"
 	[[ $# -eq 1 ]] && __die "error: $1"
-	if [[ $1 = -* ]]; then
-		__die "error: argument $1: $2"
-	else
-		local found=-1
-		for i in $(eval echo "{0..$(( ${#__BAP_POSARGS[@]} - 1 ))}"); do [[ $1 = ${__BAP_POSARGS[$i]} ]] && local found=$i; done
-		if [[ $found -lt 0 ]]; then
-			__die "error: argument $1: $2"
-		else
-			__die "error: argument ${__BAP_POSARGS_METAVARS[$found]}: $2"
-		fi
-	fi
+	[[ $1 = -* ]] && __die "error: argument $1: $2"
+	local found=-1
+	for i in $(eval echo "{0..$(( ${#__BAP_POSARGS[@]} - 1 ))}"); do [[ $1 = ${__BAP_POSARGS[$i]} ]] && local found=$i; done
+	[[ $found -lt 0 ]] && __die "error: argument $1: $2" || __die "error: argument ${__BAP_POSARGS_METAVARS[$found]}: $2"
 }
 
 function bap_set_name { # bap_set_name $name
@@ -230,7 +220,7 @@ function bap_set_subname { # bap_set_subname $name-subcommand
 	local temp=$(basename $1 | sed "s/\(.*\)\..*/\1/")
 	local name=$(basename $temp | rev | cut -d - -f2- | rev)
 	local subname=$(basename $temp | rev | cut -d - -f1 | rev)
-
+	
 	if [[ -f $(dirname $0)/$name ]]; then
 		__BAP_USAGE="usage: $name $subname"
 	elif [[ -f $(dirname $0)/$name.sh ]]; then
@@ -407,7 +397,7 @@ function bap_parse { # bap_parse "$@"
 					if [[ $nargs -eq 1 ]]; then
 						local argval=`cut -d = -f 2 <<< $1`
 						if [[ $argval = $1 ]]; then
-							[ -z $2 ] && error $arg "expected one argument"
+							[ -z $2 ] && bap_error $arg "expected one argument"
 							__BAP_SHIFT_NUM=2
 							local argval=$2
 						fi
@@ -633,10 +623,8 @@ function bap_add_subparsers { # bap_add_subparsers $subparser1 [$subparser2] ...
 }
 
 function bap_get_subparser { # bap_get_subparser
-	local name="$(basename $0 | sed "s/\(.*\)\..*/\1/")-$__BAP_SUBPARSER"
-	if [[ -f $(dirname $0)/$name ]]; then echo $(dirname $0)/$name
-	elif [[ -f $(dirname $0)/$name.sh ]]; then $(dirname $0)/$name.sh
-	fi
+	local name="$(dirname $0)/$(basename $0 | sed "s/\(.*\)\..*/\1/")-$__BAP_SUBPARSER"
+	[[ -f $name ]] && echo $name || [[ -f $name.sh ]] && echo $name.sh
 }
 
 function bap_subparse { # bap_subparse "$@"
