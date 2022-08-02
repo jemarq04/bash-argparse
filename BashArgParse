@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.2.5
+#Bash Argument Parser (BAP) v2.2.6
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -20,6 +20,7 @@ __BAP_ADD_VERSION=false
 
 __BAP_USAGE_LEN=0
 __BAP_DESC_LEN=0
+__BAP_EPILOG_LEN=0
 __BAP_HELP_LEN=0
 __BAP_HELP=""
 __BAP_HELP_SUPPRESS=false
@@ -46,9 +47,14 @@ trap "exit 1" TERM
 __BAP_TOP_PID=$$
 
 # SCRIPT OPTIONS ================================================================================
+__BAP_NAME=""
+__BAP_SUBNAME=""
 __BAP_DESC=""
+__BAP_EPILOG=""
 __BAP_VERSION=""
 __BAP_LINE_CAP=70
+
+__BAP_PREFIX="-"
 
 __BAP_USAGE=""
 __BAP_PREUSAGE_LEN=0
@@ -213,7 +219,8 @@ function bap_error { # bap_error (OR) bap_error $message (OR) bap_error $arg $me
 
 function bap_set_name { # bap_set_name $name
 	[[ $# -ne 1 ]] && bap_error "set_name() requires 1 argument"
-	__BAP_USAGE="usage: `basename $1`"
+	__BAP_NAME=$(basename $1)
+	__BAP_USAGE="usage: $__BAP_NAME"
 	__BAP_PREUSAGE_LEN=${#__BAP_USAGE}
 }
 
@@ -225,17 +232,28 @@ function bap_set_subname { # bap_set_subname $name-subcommand
 	local subname=$(basename $temp | rev | cut -d - -f1 | rev)
 	
 	if [[ -f $(dirname $0)/$name ]]; then
-		__BAP_USAGE="usage: $name $subname"
+		__BAP_NAME="$name"
 	elif [[ -f $(dirname $0)/$name.sh ]]; then
-		__BAP_USAGE="usage: $name.sh $subname"
+		__BAP_NAME="$name.sh"
 	fi
+	__BAP_SUBNAME="$__BAP_NAME $subname"
+	__BAP_USAGE="usage: $__BAP_SUBNAME"
 	__BAP_PREUSAGE_LEN=${#__BAP_USAGE}
+}
+
+function bap_get_name { # bap_get_name
+	echo $__BAP_NAME
+}
+
+function bap_get_subname { # bap_get_subname
+	echo $__BAP_SUBNAME
 }
 
 function bap_set_desc { # bap_set_desc $desc
 	[[ $# -ne 1 ]] && bap_error "set_desc() requires 1 argument" 
 	local descstring=$1
 	__BAP_DESC=""
+	__BAP_DESC_LEN=0
 	for word in $descstring; do
 		local num=${#word}
 		if (( $__BAP_DESC_LEN + $num + 1 > $__BAP_LINE_CAP || $__BAP_DESC_LEN == 0 )); then
@@ -244,6 +262,23 @@ function bap_set_desc { # bap_set_desc $desc
 		else
 			__BAP_DESC=$(printf "$__BAP_DESC $word")
 			(( __BAP_DESC_LEN += $num + 1 ))
+		fi
+	done
+}
+
+function bap_set_epilog { # bap_set_epilog $epilog
+	[[ $# -ne 1 ]] && bap_error "set_epilog() requires 1 argument"
+	local epilogstring=$1
+	__BAP_EPILOG=""
+	__BAP_EPILOG_LEN=0
+	for word in $epilogstring; do
+		local num=${#word}
+		if (( $__BAP_EPILOG_LEN + $num + 1 > $__BAP_LINE_CAP || $__BAP_EPILOG_LEN == 0 )); then
+			__BAP_EPILOG=$(printf "$__BAP_EPILOG\n$word")
+			(( __BAP_EPILOG_LEN = $num ))
+		else
+			__BAP_EPILOG=$(printf "$__BAP_EPILOG $word")
+			(( __BAP_EPILOG_LEN += $num + 1 ))
 		fi
 	done
 }
@@ -259,6 +294,18 @@ function bap_set_line_cap { # bap_set_line_cap $num
 function bap_set_help { # bap_set_help $helpstr
 	__BAP_HELP="$helpstr"
 	__BAP_HELP_SUPPRESS=true
+}
+
+
+function bap_get_usage { # bap_get_usage
+	echo "$__BAP_USAGE"
+}
+
+function bap_get_help { # bap_get_help 
+	echo "$__BAP_USAGE"
+	[[ ! -z $__BAP_DESC ]] && echo "$__BAP_DESC"
+	echo "$__BAP_HELP"
+	[[ ! -z $__BAP_EPILOG ]] && echo "$__BAP_EPILOG"
 }
 
 function bap_add_help { # bap_add_help
@@ -509,6 +556,7 @@ function bap_parse { # bap_parse "$@"
 		echo "$__BAP_USAGE"
 		[[ ! -z $__BAP_DESC ]] && echo "$__BAP_DESC"
 		echo "$__BAP_HELP"
+		[[ ! -z $__BAP_EPILOG ]] && echo "$__BAP_EPILOG"
 		exit 0
 	fi
 	if $__BAP_PRINT_VERSION; then

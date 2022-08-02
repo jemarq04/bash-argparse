@@ -79,10 +79,19 @@ Use this function to set the name of the running script. This is **required** fo
     * If you wish to name the script something differently for any reason, you can provide a different name.
   **NOTE:** This will not change how the script is executed from the terminal!
 
+* `bap_get_name`:
+Use this function to retrieve the name of the running script. This will return an empty string before `bap_set_name` is called. 
+  * Usage: `bap_get_name`.
+
 * `bap_set_desc`:
 Use this function to set the description for your script. The description string will be automatically formatted based on 
 the given line length limit. This is not required to run your script.
   * Usage: `bap_set_desc $desc`.
+
+* `bap_set_epilog`:
+Use this function to set an additional description after the help messages of each of the arguments. The epilog will similarly be automatically
+formatted based on the given line length limit and will not be required to run your script.
+  * Usage: `bap_set_epilog $epilog`.
 
 * `bap_set_line_cap`:
 Use this function to change the line length limit of the help/usage strings. (Default: 70) 
@@ -92,6 +101,21 @@ Use this function to change the line length limit of the help/usage strings. (De
 Use this function to change the help string manually. Note that this will prevent BAP from dynamically adding to the help string as you add arguments
 to your script.
   * Usage: `bap_set_help $helpstr`.
+
+* `bap_get_usage`:
+Use this function to retrieve the usage string. To preserve whitespace on `echo` statements, be sure to enclose it in double quotes.
+  * Usage: `bap_get_usage`.
+    * For example,
+	```sh
+	usage_var=$(bap_get_usage)
+	echo "$usage_var"
+	```
+
+* `bap_get_help`:
+Use this function to retrieve the help string. This includes the usage string, the description, and the help messages for each of the arguments. The
+epilog statement will additionally be provided if it has been given. To preserve whitespace on `echo` statements, be sure to enclose it in double 
+quotes (just like `bap_get_usage`).
+  * Usage: `bap_get_help`.
 
 * `bap_add_help`:
 Use this function to add a `-h/--help` flag into your script that will print the help message and exit when given.
@@ -233,6 +257,12 @@ the usage string as `foo bar` automatically for you. (Note that either `bap_set_
   * Usage: `bap_set_subname $0` or `bap_set_subname $name`.
     * For the script to automatically get the running script's name, run `bap_set_subname $0`.
     * If you wish to name the script something differently for any reason, you can provide a different name.
+
+* `bap_get_subname`:
+Use this function to retrieve the name of the running subcommand script as it appears in the usage string. For a subcommand script named `foo-bar.sh`,
+this function would return `foo.sh bar`. This will return an empty string if `bap_set_subname` has not been called. Note that if you want to retrieve
+the name of the base script, call `bap_get_name` instead.
+  * Usage: `bap_get_subname`.
 
 * `bap_add_subparsers`:
 Use this function to add subcommands to your script. Note that files for each subcommand must be present in the directory of your base script. 
