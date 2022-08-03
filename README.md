@@ -72,6 +72,11 @@ Use this function to print an error message after a usage string and exit your s
     * `bap_error "$message"`: Prints `error: $message` and exits the script.
     * `bap_error $arg "$message"`: Prints `error: argument $arg: $message` and exits the script.
 
+* `bap_set_prefix`:
+Use this function to list the valid prefix characters for flags in your script. By default, this is set to only dashes. If you wish to allow both
+dashes and plus signs, you can run `bap_set_prefix "-+"`.
+  * Usage: `bap_set_prefix $chars`.
+
 * `bap_set_name`:
 Use this function to set the name of the running script. This is **required** for the program to format properly.
   * Usage: `bap_set_name $0` or `bap_set_name $name`.

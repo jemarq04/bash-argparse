@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.2.6
+#Bash Argument Parser (BAP) v2.3.0
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -65,11 +65,13 @@ function __check_lists {
 	[[ $# -ne 2 ]] && __die "error: __check_lists() requires 2 arguments"
 	local first=`cut -d / -f 1 <<< $1`
 	local second=`cut -d / -f 2 <<< $1`
-	if [[ ! $first =~ ^-- ]]; then
+#	if [[ ! $first =~ ^$__BAP_PREFIX$__BAP_PREFIX ]]; then
+	if ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $first; then
 		[[ $__BAP_FLAG_LIST = *"${first:1}"* ]] && __die "error: duplicate flag $first"
 		__BAP_FLAG_LIST="${first:1} $__BAP_FLAG_LIST"
 	fi
-	if [[ $second =~ ^-- ]]; then
+#	if [[ $second =~ ^$__BAP_PREFIX$__BAP_PREFIX ]]; then
+	if egrep -qE "^([$__BAP_PREFIX])\1" <<< $second; then
 		[[ $__BAP_LONG_FLAG_LIST = *"$second"* ]] && __die "error: duplicate long flag $second"
 		__BAP_LONG_FLAG_LIST="$second $__BAP_LONG_FLAG_LIST"
 	fi
@@ -80,7 +82,8 @@ function __add_help {
 	[[ -z $__BAP_USAGE ]] && __die "error: you must call \`bap_set_name \$0\` before adding arguments"
 	
 	local suppress=false
-	if [[ ${1:0:1} = "-" ]]; then
+#	if [[ ${1:0:1} = "$__BAP_PREFIX" ]]; then
+	if [[ $1 =~ ^[$__BAP_PREFIX] ]]; then
 		[[ $# -lt 4 || $# -gt 5 ]] && __die "error: __add_help() requires 4-5 arguments for flags (got $#)"
 		$__BAP_HELP_SUPPRESS || $__BAP_ADDED_FLAG_HELP || __BAP_HELP=$(printf "$__BAP_HELP\noptional arguments:")
 		__BAP_ADDED_FLAG_HELP=true
@@ -93,7 +96,8 @@ function __add_help {
 		
 		$3 || local usagestr="["
 		local usagestr="$usagestr$first"
-		[[ $first = $second && ! $first =~ ^-- ]] && local index=1
+#		[[ $first = $second && ! $first =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] && local index=1
+		[[ $first = $second ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $first && local index=1
 		if [[ $2 -ne 0 ]]; then
 			for i in $(eval echo "{1..$2}"); do
 				if [[ -z $5 ]]; then
@@ -178,7 +182,8 @@ function __save_flag { # save_flag $arg $argval
 	local first=`cut -d / -f 1 <<< $1`
 	local second=`cut -d / -f 2 <<< $1`
 	local index=2
-	[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+#	[[ $first = $second ]] && [[ ! $first =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] && local index=1
+	[[ $first = $second ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $first && local index=1
 	local name=`tr [a-z] [A-z] <<< ${second:$index}`
 	local name=`tr - _ <<< $name`
 	printf -v "__BAP_ARG_$name" "%s" "$2"
@@ -190,7 +195,8 @@ function __save_sflag { # save_sflag $arg $index $argval
 	local first=`cut -d / -f 1 <<< $1`
 	local second=`cut -d / -f 2 <<< $1`
 	local index=2
-	[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+#	[[ $first = $second ]] && [[ ! $first =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] && local index=1
+	[[ $first = $second ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $first && local index=1
 	local name=`tr [a-z] [A-z] <<< ${second:$index}`
 	local name=`tr - _ <<< $name`
 
@@ -215,6 +221,12 @@ function bap_error { # bap_error (OR) bap_error $message (OR) bap_error $arg $me
 	local found=-1
 	for i in $(eval echo "{0..$(( ${#__BAP_POSARGS[@]} - 1 ))}"); do [[ $1 = ${__BAP_POSARGS[$i]} ]] && local found=$i; done
 	[[ $found -lt 0 ]] && __die "error: argument $1: $2" || __die "error: argument ${__BAP_POSARGS_METAVARS[$found]}: $2"
+}
+
+function bap_set_prefix { # bap_set_prefix $chars
+	[[ $# -ne 1 ]] && bap_error "set_prefix() requires 1 argument"
+	[[ $1 =~ [[:alnum:]] || $1 =~ [[:space:]] ]] && bap_error "set_prefix() can only take non-alphanumeric characters"
+	__BAP_PREFIX="$1"
 }
 
 function bap_set_name { # bap_set_name $name
@@ -325,6 +337,7 @@ function bap_add_version { # bap_add_version $version
 function bap_add_iflag { # bap_add_iflag $arg $nargs $required $message [$metavarlist]
 	[[ $# -lt 4 ]] && bap_error "add_iflag() requires at least 4 arguments"
 	[[ $# -gt 5 ]] && bap_error "add_iflag() requires no more than 5 arguments"
+	[[ ! $1 =~ ^[$__BAP_PREFIX] ]] && bap_error "unrecognized iflag format: $1"
 	__check_lists $1 $3
 	__add_help "$@"
 	__BAP_IFLAGS+=($1)
@@ -335,6 +348,7 @@ function bap_add_iflag { # bap_add_iflag $arg $nargs $required $message [$metava
 function bap_add_fflag { # bap_add_fflag $arg $nargs $required $message [$metavarlist]
 	[[ $# -lt 4 ]] && bap_error "add_fflag() requires at least 4 arguments"
 	[[ $# -gt 5 ]] && bap_error "add_fflag() requires no more than 5 arguments"
+	[[ ! $1 =~ ^[$__BAP_PREFIX] ]] && bap_error "unrecognized fflag format: $1"
 	__check_lists $1 $3
 	__add_help "$@"
 	__BAP_FFLAGS+=($1)
@@ -345,6 +359,7 @@ function bap_add_fflag { # bap_add_fflag $arg $nargs $required $message [$metava
 function bap_add_sflag { # bap_add_iflag $arg $nargs $required $message [$metavarlist]
 	[[ $# -lt 4 ]] && bap_error "add_sflag() requires at least 4 arguments"
 	[[ $# -gt 5 ]] && bap_error "add_sflag() requires no more than 5 arguments"
+	[[ ! $1 =~ ^[$__BAP_PREFIX] ]] && bap_error "unrecognized sflag format: $1"
 	__check_lists $1 $3
 	__add_help "$@"
 	__BAP_SFLAGS+=($1)
@@ -354,6 +369,7 @@ function bap_add_sflag { # bap_add_iflag $arg $nargs $required $message [$metava
 
 function bap_add_bflag { # add_bflag $arg $message
 	[[ $# -ne 2 ]] && bap_error "add_bflag() requires 2 arguments"
+	[[ ! $1 =~ ^[$__BAP_PREFIX] ]] && bap_error "unrecognized bflag format: $1"
 	__check_lists $1 false
 	__add_help $1 0 false "$2"
 	__BAP_BFLAGS+=($1)
@@ -374,12 +390,13 @@ function bap_add_posarg { # add_posarg $arg $required $message [$metavar]
 function bap_parse { # bap_parse "$@"
 	$__BAP_USE_SUBPARSERS && __BAP_USAGE="$__BAP_USAGE ..."
 	while (( "$#" )); do
-		if [[ $1 =~ ^- ]]; then
+		if [[ $1 =~ ^[$__BAP_PREFIX] ]]; then
 			if $__BAP_ADD_HELP; then
 				local arg="-h/--help"
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+#				if [[ $1 = *"${first:1}"* && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 = $second ]]; then
+				if ( [[ $1 = *"${first:1}"* ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ ${1:2} = ${second:2} ]]; then
 					__BAP_PRINT_HELP=true
 					__BAP_FOUND_FLAG=true
 				fi
@@ -388,7 +405,8 @@ function bap_parse { # bap_parse "$@"
 				local arg="--version"
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+#				if [[ $1 = *"${first:1}"* && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 = $second ]]; then
+				if ( [[ $1 = *"${first:1}"* ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ ${1:2} = ${second:2} ]]; then
 					__BAP_PRINT_VERSION=true
 					__BAP_FOUND_FLAG=true
 				fi
@@ -403,7 +421,8 @@ function bap_parse { # bap_parse "$@"
 				local argval=()
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ $1 =~ ^$second ]]; then
+#				if [[ $1 = *"${first:1}" && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 =~ ^$second ]]; then
+				if ( [[ $1 = *"${first:1}" ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ ${1:2} =~ ^${second:2} ]]; then
 					if [[ $nargs -eq 1 ]]; then
 						argval+=("`cut -d = -f 2 <<< $1`")
 						if [[ ${argval[0]} = $1 ]]; then
@@ -420,7 +439,8 @@ function bap_parse { # bap_parse "$@"
 						(( __BAP_SHIFT_NUM = $nargs + 1 ))
 					fi
 					__BAP_FOUND_FLAG=true
-				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
+#				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]]; then
+				elif [[ $1 = *"${first:1}"* ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1; then
 					[[ $nargs -ne 1 ]] && bap_error $arg "expected $nargs arguments"
 					argval+=("`cut -d ${first:1} -f 2- <<< $1`")
 					__BAP_FOUND_FLAG=true
@@ -443,7 +463,8 @@ function bap_parse { # bap_parse "$@"
 				local argval=""
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ $1 =~ ^$second ]]; then
+#				if [[ $1 = *"${first:1}" && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 =~ ^$second ]]; then
+				if ( [[ $1 = *"${first:1}" ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ ${1:2} =~ ^${second:2} ]]; then
 					if [[ $nargs -eq 1 ]]; then
 						local argval=`cut -d = -f 2 <<< $1`
 						if [[ $argval = $1 ]]; then
@@ -463,7 +484,8 @@ function bap_parse { # bap_parse "$@"
 						(( __BAP_SHIFT_NUM = $nargs + 1 ))
 					fi
 					__BAP_FOUND_FLAG=true
-				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
+#				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]]; then
+				elif [[ $1 = *"${first:1}"* ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1; then
 					[[ $nargs -ne 1 ]] && bap_error $arg "expected $nargs arguments"
 					local argval=`cut -d ${first:1} -f 2 <<< $1`
 					[[ ! $argval =~ ^[0-9]+$ ]] && bap_error $arg "invalid integer: '$argval'"
@@ -484,7 +506,8 @@ function bap_parse { # bap_parse "$@"
 				local argval=""
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}" && ! $1 =~ ^-- ]] || [[ $1 =~ ^$second ]]; then
+#				if [[ $1 = *"${first:1}" && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 =~ ^$second ]]; then
+				if ( [[ $1 = *"${first:1}" ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ ${1:2} =~ ^${second:2} ]]; then
 					if [[ $nargs -eq 1 ]]; then
 						local argval=`cut -d = -f 2 <<< $1`
 						if [[ $argval = $1 ]]; then
@@ -504,7 +527,8 @@ function bap_parse { # bap_parse "$@"
 						(( __BAP_SHIFT_NUM = $nargs + 1 ))
 					fi
 					__BAP_FOUND_FLAG=true
-				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]]; then
+#				elif [[ $1 = *"${first:1}"* && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]]; then
+				elif [[ $1 = *"${first:1}"* ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1; then
 					[[ $nargs -ne 1 ]] && bap_error $arg "expected $nargs arguments"
 					local argval=`cut -d ${first:1} -f 2 <<< $1`
 					[[ ! $argval =~ ^[0-9]+([.][0-9]+)?$ ]] && bap_error $arg "invalid float: '$argval'"
@@ -525,7 +549,8 @@ function bap_parse { # bap_parse "$@"
 				local argval=""
 				local first=`cut -d / -f 1 <<< $arg`
 				local second=`cut -d / -f 2 <<< $arg`
-				if [[ $1 = *"${first:1}"* && ! $1 =~ ^-- ]] || [[ $1 = $second ]]; then
+#				if [[ $1 = *"${first:1}"* && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 = $second ]]; then
+				if ( [[ $1 = *"${first:1}" ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ ${1:2} =~ ^${second:2} ]]; then
 					local argval=true
 					__BAP_FOUND_FLAG=true
 				fi
@@ -535,7 +560,8 @@ function bap_parse { # bap_parse "$@"
 			done
 			
 			[[ $__BAP_FOUND_FLAG = false ]] && bap_error "unrecognized argument: $1"
-			if [[ ${1:0:1} = "-" && ! ${1:0:2} = "--" ]]; then
+#			if [[ ${1:0:1} = "$__BAP_PREFIX" && ! ${1:0:2} = "$__BAP_PREFIX$__BAP_PREFIX" ]]; then
+			if [[ $1 =~ ^[$__BAP_PREFIX] ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $1; then
 				while read -n 1 char; do
 					[ -z $char ] && continue
 					local found_char=false
@@ -579,7 +605,8 @@ function bap_get { # bap_get $arg (OR) bap_get $arg $i
 		local first=`cut -d / -f 1 <<< $arg`
 		local second=`cut -d / -f 2 <<< $arg`
 		local index=2
-		[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+#		[[ $first = $second ]] && [[ ! $first =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] && local index=1
+		[[ $first = $second ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $first && local index=1
 		local name=`tr [a-z] [A-z] <<< ${second:$index}`
 		local name=`tr - _ <<< $name`
 	
@@ -602,11 +629,12 @@ function bap_get_len { # bap_get_len $arg
 	[[ $# -ne 1 ]] && bap_error "get_len() requires 1 argument"
 	local arg="${1%\"}"
 	local arg="${arg#\"}"
-	if [[ $arg =~ ^- ]]; then
+	if [[ $arg =~ ^[$__BAP_PREFIX] ]]; then
 		local first=`cut -d / -f 1 <<< $arg`
 		local second=`cut -d / -f 2 <<< $arg`
 		local index=2
-		[[ $first = $second ]] && [[ ! $first =~ ^-- ]] && local index=1
+#		[[ $first = $second ]] && [[ ! $first =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] && local index=1
+		[[ $first = $second ]] && ! egrep -qE "^([$__BAP_PREFIX])\1" <<< $first && local index=1
 		local name=`tr [a-z] [A-z] <<< ${second:$index}`
 		local name=`tr - _ <<< $name`
 		
