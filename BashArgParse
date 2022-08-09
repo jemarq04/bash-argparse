@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.3.2
+#Bash Argument Parser (BAP) v2.3.3
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -421,7 +421,6 @@ function bap_parse { # bap_parse "$@"
 				local second=`cut -d / -f 2 <<< $arg`
 #				if [[ $1 = *"${first:1}" && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 =~ ^$second ]]; then
 				if ( [[ $1 = *"${first:1}" ]] && ! egrep -q "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ $1 = "$second"* ]]; then
-					[[ $second = "++tree" ]] && echo passed
 					if [[ $nargs -eq 1 ]]; then
 						argval+=("`cut -d = -f 2 <<< $1`")
 						if [[ ${argval[0]} = $1 ]]; then
