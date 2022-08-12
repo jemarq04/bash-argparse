@@ -265,7 +265,7 @@ the usage string as `foo bar` automatically for you. (Note that either `bap_set_
 
 * `bap_get_subname`:
 Use this function to retrieve the name of the running subcommand script as it appears in the usage string. For a subcommand script named `foo-bar.sh`,
-this function would return `foo.sh bar`. This will return an empty string if `bap_set_subname` has not been called. Note that if you want to retrieve
+this function would return `foo bar` (or `foo.sh bar`, if the base script is named `foo.sh`). This will return an empty string if `bap_set_subname` has not been called. Note that if you want to retrieve
 the name of the base script, call `bap_get_name` instead.
   * Usage: `bap_get_subname`.
 
