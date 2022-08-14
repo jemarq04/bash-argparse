@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.3.4
+#Bash Argument Parser (BAP) v2.3.5
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -219,7 +219,9 @@ function bap_error { # bap_error (OR) bap_error $message (OR) bap_error $arg $me
 	[[ $# -eq 1 ]] && __die "error: $1"
 	[[ $1 = -* ]] && __die "error: argument $1: $2"
 	local found=-1
-	for i in $(eval echo "{0..$(( ${#__BAP_POSARGS[@]} - 1 ))}"); do [[ $1 = ${__BAP_POSARGS[$i]} ]] && local found=$i; done
+	[[ ${#__BAP_POSARGS[@]} -ne 0 ]] && for i in $(eval echo "{0..$(( ${#__BAP_POSARGS[@]} - 1 ))}"); do 
+		[[ $1 = ${__BAP_POSARGS[$i]} ]] && local found=$i
+	done
 	[[ $found -lt 0 ]] && __die "error: argument $1: $2" || __die "error: argument ${__BAP_POSARGS_METAVARS[$found]}: $2"
 }
 
@@ -594,7 +596,9 @@ function bap_parse { # bap_parse "$@"
 	for req in $__BAP_REQ_ARG_LIST; do [[ $__BAP_GIVEN_REQ_ARG_LIST = *"$req"* ]] || bap_error $req "argument is required"; done
 	[[ ${#__BAP_PARAMS[@]} -lt $__BAP_NUM_REQ_POSARGS ]] && bap_error "too few arguments"
 	! $__BAP_USE_SUBPARSERS && [[ ${#__BAP_PARAMS[@]} -gt $__BAP_NUM_POSARGS ]] && bap_error "too many arguments"
-	for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do __save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"; done
+	[[ ${#__BAP_PARAMS[@]} -ne 0 ]] && for i in $(eval echo "{0..$(( ${#__BAP_PARAMS[@]} - 1 ))}"); do 
+		__save_posarg ${__BAP_POSARGS[$i]} "${__BAP_PARAMS[$i]}"
+	done
 	$__BAP_USE_SUBPARSERS && __BAP_SUBPARSER=$(bap_get_choice "subcommand" $__BAP_SUBPARSER_CHOICES)
 }
 
