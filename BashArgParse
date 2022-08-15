@@ -1,5 +1,5 @@
 #!/bin/bash
-#Bash Argument Parser (BAP) v2.3.5
+#Bash Argument Parser (BAP) v2.3.6
 __BAP_IFLAGS=()
 __BAP_FFLAGS=()
 __BAP_SFLAGS=()
@@ -391,8 +391,13 @@ function bap_add_posarg { # add_posarg $arg $required $message [$metavar]
 
 function bap_parse { # bap_parse "$@"
 	$__BAP_USE_SUBPARSERS && __BAP_USAGE="$__BAP_USAGE ..."
+	local only_posargs=false
 	while (( "$#" )); do
-		if [[ $1 =~ ^[$__BAP_PREFIX] ]]; then
+		[[ $1 = "--" ]] && local only_posargs=true && shift && continue
+		if $only_posargs || [[ ! $1 =~ ^[$__BAP_PREFIX] ]]; then
+			__BAP_PARAMS+=("$1")
+			$__BAP_USE_SUBPARSERS && break
+		else
 			if $__BAP_ADD_HELP; then
 				local arg="-h/--help"
 				local first=`cut -d / -f 1 <<< $arg`
@@ -572,9 +577,6 @@ function bap_parse { # bap_parse "$@"
 					[[ $found_char = false ]] && bap_error "unrecognized arguments: $1"
 				done <<< ${1:1}
 			fi
-		else 
-			__BAP_PARAMS+=("$1")
-			$__BAP_USE_SUBPARSERS && break
 		fi
 		
 		shift $__BAP_SHIFT_NUM
