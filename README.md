@@ -173,7 +173,10 @@ but, similarly to flags, they cannot be used to retrieve the value provided by t
 
 * `bap_parse`:
 Use this function to parse the command line arguments. This is done **after** you have added all of the flags and positional arguments necessary
-for your script. The `$@` variable must be encased in double quotes to preserve whitespaces in certain arguments.
+for your script. The `$@` variable must be encased in double quotes to preserve whitespaces in certain arguments. (Note: If you want to have 
+positional arguments that begin with the prefix characters, it may be useful to denote the beginning of the positional arguments with the
+pseudo-optional argument `--`. For example, `PROG.sh --num=3 -- -a three`. In the example, both `-a` and `three` are stored into their respective
+positional arguments.)
   * Usage: `bap_parse "$@"`.
 
 * `bap_get`:
