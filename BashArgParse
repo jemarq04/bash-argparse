@@ -437,7 +437,7 @@ function bap_parse { # bap_parse "$@"
 #				elif [[ $1 = *"${first:1}" && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 =~ ^$second ]]; then
 				elif ( [[ $1 = *"${first:1}" ]] && ! egrep -q "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ $1 = "$second"* ]]; then
 					if [[ $nargs -eq 1 ]]; then
-						argval+=("`cut -d = -f 2 <<< $1`")
+						argval+=("`cut -d = -f 2- <<< $1`")
 						if [[ ${argval[0]} = $1 ]]; then
 							[[ -z $2 ]] && bap_error $arg "expected one argument"
 							__BAP_SHIFT_NUM=2
@@ -480,7 +480,7 @@ function bap_parse { # bap_parse "$@"
 #				elif [[ $1 = *"${first:1}" && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 =~ ^$second ]]; then
 				elif ( [[ $1 = *"${first:1}" ]] && ! egrep -q "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ $1 =~ "$second"* ]]; then
 					if [[ $nargs -eq 1 ]]; then
-						local argval=`cut -d = -f 2 <<< $1`
+						local argval=`cut -d = -f 2- <<< $1`
 						if [[ $argval = $1 ]]; then
 							[ -z $2 ] && bap_error $arg "expected one argument"
 							__BAP_SHIFT_NUM=2
@@ -524,7 +524,7 @@ function bap_parse { # bap_parse "$@"
 #				elif [[ $1 = *"${first:1}" && ! $1 =~ ^$__BAP_PREFIX$__BAP_PREFIX ]] || [[ $1 =~ ^$second ]]; then
 				elif ( [[ $1 = *"${first:1}" ]] && ! egrep -q "^([$__BAP_PREFIX])\1" <<< $1 ) || [[ $1 =~ "$second"* ]]; then
 					if [[ $nargs -eq 1 ]]; then
-						local argval=`cut -d = -f 2 <<< $1`
+						local argval=`cut -d = -f 2- <<< $1`
 						if [[ $argval = $1 ]]; then
 							[ -z $2 ] && bap_error $arg "expected one argument"
 							__BAP_SHIFT_NUM=2
